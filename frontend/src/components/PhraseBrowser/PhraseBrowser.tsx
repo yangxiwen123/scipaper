@@ -12,6 +12,7 @@ import {
   ExperimentOutlined, InfoCircleOutlined,
 } from '@ant-design/icons';
 import { usePaperStore, SECTION_LABELS } from '../../stores/paperStore';
+import { SECTION_SCHEMAS } from '../../data/sectionSchemas';
 import * as api from '../../api/client';
 import type { Phrase, CategoryTree } from '../../api/client';
 
@@ -72,12 +73,15 @@ export function PhraseBrowser({ open, onClose, sectionName }: Props) {
     setLoading(false);
   };
 
+  // Determine target field for insertion (first field of current section)
+  const schema = SECTION_SCHEMAS[sectionName];
+  const fieldKey = schema?.fields?.[0]?.key || 'default';
+  const fieldLabel = schema?.fields?.[0]?.label?.split('—')[0]?.trim() || sectionName;
+
   const handleInsert = useCallback(
     async (phrase: Phrase) => {
-      // For now, insert the template text directly
-      // In a full implementation, this would open a slot-filling modal
-      insertPhraseIntoSection(sectionName, 0, phrase.template_text);
-      message.success('Phrase inserted! Fill in the highlighted slots.');
+      insertPhraseIntoSection(sectionName, fieldKey, phrase.template_text);
+      message.success(`Inserted into "${fieldLabel}". Fill in the template variables.`);
     },
     [sectionName, insertPhraseIntoSection]
   );

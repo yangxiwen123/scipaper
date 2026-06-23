@@ -1,233 +1,99 @@
 /**
  * PaperWizard — the main stepper-based writing interface.
  *
- * Guides users through all 6 SCI paper sections with:
- *   - Real-time progress tracking
- *   - Integrated phrasebank browser
- *   - Pre-export validation with precise diagnostics
- *   - Demo mode with pre-loaded H-MODRL agricultural logistics data
- *
- * This component is the primary user-facing surface of the entire system.
- * It orchestrates the Zustand store, the SectionEditor, the PhraseBrowser,
- * and the ExportPreview into a unified writing experience.
+ * Guides users through all 6 SCI paper sections with structured
+ * fill-in-the-blank forms, integrated phrasebank, and real-time
+ * progress tracking. Works in two modes:
+ *   1. Standalone (localStorage) — no backend needed
+ *   2. Connected (API) — full backend with LaTeX/PDF export
  */
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  useState, useEffect, useCallback, useMemo,
-} from 'react';
-import {
-  Steps, Button, Space, Card, Progress, Typography, Tooltip, Modal,
-  Tag, message, Badge, Alert, Divider, Empty,
+  Steps, Button, Space, Card, Progress, Typography, Tooltip,
+  Tag, message, Alert,
 } from 'antd';
 import {
-  CheckCircleOutlined,
-  DownloadOutlined,
-  BookOutlined,
-  LeftOutlined,
-  RightOutlined,
-  ExperimentOutlined,
-  ExclamationCircleOutlined,
-  FileTextOutlined,
+  CheckCircleOutlined, DownloadOutlined, BookOutlined,
+  LeftOutlined, RightOutlined, ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import {
-  usePaperStore,
-  SECTION_ORDER,
-  SECTION_LABELS,
-  SECTION_HELP,
+  usePaperStore, SECTION_ORDER, SECTION_LABELS, SECTION_HELP,
 } from '../../stores/paperStore';
-import type { ValidationIssue } from '../../stores/paperStore';
-import { SectionEditor } from '../StepForm/SectionEditor';
+import { SECTION_SCHEMAS } from '../../data/sectionSchemas';
+import { StructuredSectionEditor } from '../StepForm/StructuredSectionEditor';
 import { PhraseBrowser } from '../PhraseBrowser/PhraseBrowser';
 import { ExportPreview } from '../ExportPreview/ExportPreview';
-import * as api from '../../api/client';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 
 export function PaperWizard() {
   const {
-    paper,
-    sections,
-    currentStep,
-    setCurrentStep,
-    isDemoMode,
-    phraseBrowserOpen,
-    togglePhraseBrowser,
-    closePhraseBrowser,
-    validationIssues,
-    toggleSectionComplete,
-    initWithMockData,
+    paper, sections, currentStep, setCurrentStep,
+    phraseBrowserOpen, togglePhraseBrowser, closePhraseBrowser,
+    toggleSectionComplete, isStandalone,
   } = usePaperStore();
 
   const [showExport, setShowExport] = useState(false);
-  const [validating, setValidating] = useState(false);
-  const [localIssues, setLocalIssues] = useState<ValidationIssue[]>([]);
-  const [showDemoPrompt, setShowDemoPrompt] = useState(false);
+  const [localIssues, setLocalIssues] = useState<any[]>([]);
 
-  // ---- Auto-detect demo mode from URL ----
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('demo') === '1' && !paper) {
-      setShowDemoPrompt(true);
-    }
-  }, [paper]);
-
-  // ---- Guard: no paper loaded ----
   if (!paper) {
     return (
-      <div style={{ maxWidth: 600, margin: '80px auto', textAlign: 'center' }}>
-        {showDemoPrompt && (
-          <Card
-            className="glow-cyan"
-            style={{ borderColor: 'var(--accent-cyan)' }}
-            title={
-              <span style={{ fontFamily: 'inherit', color: 'var(--accent-cyan)' }}>
-                <ExperimentOutlined /> Demo Mode Available
-              </span>
-            }
-          >
-            <Paragraph style={{ color: 'var(--text-secondary)', fontFamily: 'inherit' }}>
-              A realistic agricultural logistics research scenario is available for testing.
-              It includes a complete Methods section describing the H-MODRL algorithm.
-            </Paragraph>
-            <Button
-              type="primary"
-              size="large"
-              onClick={() => {
-                initWithMockData();
-                setShowDemoPrompt(false);
-              }}
-              style={{ fontFamily: 'inherit' }}
-              className="glow-cyan"
-            >
-              <ExperimentOutlined /> Load Demo Data
-            </Button>
-          </Card>
-        )}
-        {!showDemoPrompt && (
-          <Empty description="No paper loaded. Create a new paper or load demo data." />
-        )}
+      <div style={{ textAlign: 'center', padding: 80 }}>
+        <Text type="secondary" style={{ fontFamily: 'inherit' }}>No paper loaded.</Text>
       </div>
     );
   }
 
-  // ---- Derived State ----
   const currentSectionName = SECTION_ORDER[currentStep];
-  const currentSection = sections[currentSectionName];
+  const schema = SECTION_SCHEMAS[currentSectionName];
 
   const completedSections = SECTION_ORDER.filter(
     (name) => sections[name]?.is_complete,
   ).length;
-  const totalSections = SECTION_ORDER.length;
-  const progressPercent = Math.round((completedSections / totalSections) * 100);
+  const progressPercent = Math.round((completedSections / SECTION_ORDER.length) * 100);
 
   const totalWords = Object.values(sections).reduce(
     (sum, s) => sum + (s.word_count || 0), 0,
   );
 
-  const currentSectionWordCount = currentSection?.word_count || 0;
-  const currentSectionParaCount = (
-    (currentSection?.content_json as any)?.paragraphs || []
-  ).length;
+  const handleNext = () => {
+    if (currentStep < SECTION_ORDER.length - 1) setCurrentStep(currentStep + 1);
+  };
+  const handlePrev = () => {
+    if (currentStep > 0) setCurrentStep(currentStep - 1);
+  };
 
-  // ---- Handlers ----
-  const handleNext = useCallback(() => {
-    if (currentStep < SECTION_ORDER.length - 1) {
-      setCurrentStep(currentStep + 1);
-    }
-  }, [currentStep, setCurrentStep]);
-
-  const handlePrev = useCallback(() => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  }, [currentStep, setCurrentStep]);
-
-  const handleStepClick = useCallback(
-    (step: number) => setCurrentStep(step),
-    [setCurrentStep],
-  );
-
-  const handleToggleComplete = useCallback(() => {
-    toggleSectionComplete(currentSectionName);
-  }, [currentSectionName, toggleSectionComplete]);
-
-  const handleValidate = useCallback(async () => {
-    if (isDemoMode || !paper) {
-      // In demo mode, run client-side validation only
-      const demoIssues: ValidationIssue[] = [];
-      const currentContent = currentSection?.content_json as any;
-      const paragraphs = currentContent?.paragraphs || [];
-
-      if (paragraphs.length === 0) {
-        demoIssues.push({
-          rule_id: 'section_empty',
-          section: currentSectionName,
-          severity: 'error',
-          message: `The ${SECTION_LABELS[currentSectionName]} section is empty. Add at least one paragraph.`,
-          auto_fix_hint: `Click "Add Paragraph" to start writing.`,
-        });
-      }
-
-      if (totalWords < 500) {
-        demoIssues.push({
-          rule_id: 'min_total_words',
-          section: 'paper',
-          severity: 'warning',
-          message: `Total word count (${totalWords}) is below the recommended minimum of 500 words.`,
-          auto_fix_hint: 'Expand each section to at least 100 words.',
-        });
-      }
-
-      setLocalIssues(demoIssues);
-
-      if (demoIssues.length === 0) {
-        message.success('All checks passed — paper is ready to export!');
-      } else {
-        const errCount = demoIssues.filter((i) => i.severity === 'error').length;
-        if (errCount > 0) {
-          message.warning(`${errCount} error(s) found. See details below.`);
-        } else {
-          message.info(`${demoIssues.length} warning(s). Paper may need revision.`);
+  const handleValidate = () => {
+    const issues: any[] = [];
+    for (const name of SECTION_ORDER) {
+      const sec = sections[name];
+      const s = SECTION_SCHEMAS[name];
+      if (!s) continue;
+      const fv = (sec?.content_json as any)?._fieldValues || {};
+      for (const field of s.fields) {
+        if (field.required && !fv[field.key]?.trim()) {
+          issues.push({
+            severity: 'error',
+            section: name,
+            message: `"${field.label.split(' —')[0]}" is required.`,
+          });
         }
       }
-      return;
     }
-
-    // Server-side validation
-    setValidating(true);
-    try {
-      const result = await api.validatePaper(paper.id);
-      const issues: ValidationIssue[] = (result.issues || []).map((i: any) => ({
-        rule_id: i.rule_id || '',
-        section: i.section || '',
-        severity: (i.severity || 'warning') as ValidationIssue['severity'],
-        message: i.message || '',
-        auto_fix_hint: i.auto_fix_hint || null,
-      }));
-      setLocalIssues(issues);
-
-      if (result.is_ready) {
-        message.success('All checks passed — paper is ready to export!');
-      } else {
-        const errCount = issues.filter((i) => i.severity === 'error').length;
-        if (errCount > 0) {
-          message.warning(`${errCount} error(s) must be fixed before export.`);
-        }
-      }
-    } catch {
-      message.error('Server validation failed. Check your connection.');
+    setLocalIssues(issues);
+    if (issues.length === 0) {
+      message.success('All required fields are complete. Ready to export!');
+    } else {
+      message.warning(`${issues.length} required field(s) still need attention.`);
     }
-    setValidating(false);
-  }, [isDemoMode, paper, currentSection, currentSectionName, totalWords]);
+  };
 
-  // ---- Build Step Items ----
   const stepItems = useMemo(
     () =>
       SECTION_ORDER.map((name) => ({
         title: SECTION_LABELS[name],
         description: sections[name]?.is_complete ? (
-          <Tag color="green" style={{ fontSize: 10 }}>
-            Complete
-          </Tag>
+          <Tag color="green" style={{ fontSize: 10 }}>Done</Tag>
         ) : (
           <Tag style={{ fontSize: 10 }}>Pending</Tag>
         ),
@@ -235,272 +101,93 @@ export function PaperWizard() {
     [sections],
   );
 
-  // =================================================================
-  // RENDER
-  // =================================================================
-
   return (
-    <div style={{ maxWidth: 1240, margin: '0 auto', paddingBottom: 80 }}>
-      {/* ===== Paper Header Bar ===== */}
+    <div style={{ maxWidth: 1100, margin: '0 auto', paddingBottom: 80 }}>
+      {/* Header Bar */}
       <Card
         className="glow-cyan"
-        style={{
-          marginBottom: 20,
-          borderColor: 'var(--accent-cyan)',
-          background: 'var(--bg-card)',
-        }}
+        style={{ marginBottom: 20, borderColor: 'var(--accent-cyan)', background: 'var(--bg-card)' }}
       >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            flexWrap: 'wrap',
-            gap: 16,
-          }}
-        >
-          {/* Left: Title & Metadata */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
           <div style={{ flex: 1, minWidth: 280 }}>
-            <Title
-              level={3}
-              style={{
-                margin: 0,
-                color: 'var(--text-primary)',
-                fontFamily: 'inherit',
-                wordBreak: 'break-word',
-              }}
-            >
-              {paper.title || 'Untitled Paper'}
+            <Title level={3} style={{ margin: 0, color: 'var(--text-primary)', fontFamily: 'inherit', wordBreak: 'break-word' }}>
+              {paper.title || 'Untitled'}
             </Title>
-            <Space size={[8, 8]} wrap style={{ marginTop: 10 }}>
-              {isDemoMode && (
-                <Tag color="purple">
-                  <ExperimentOutlined /> DEMO
-                </Tag>
-              )}
-              <Tag color="cyan">{paper.citation_style.toUpperCase()}</Tag>
-              {paper.journal_target && (
-                <Tag color="blue">{paper.journal_target}</Tag>
-              )}
+            <Space size={8} wrap style={{ marginTop: 10 }}>
+              {isStandalone && <Tag color="orange">LOCAL DEMO</Tag>}
+              <Tag color="cyan">{paper.citation_style?.toUpperCase()}</Tag>
               <Text style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
-                {totalWords.toLocaleString()} words · {completedSections}/
-                {totalSections} sections · {currentSectionParaCount} paragraphs
+                {totalWords.toLocaleString()} words · {completedSections}/{SECTION_ORDER.length} sections done
               </Text>
             </Space>
           </div>
-
-          {/* Right: Progress + Demo toggle */}
-          <Space direction="vertical" align="center" size={4}>
-            <Progress
-              type="circle"
-              percent={progressPercent}
-              size={64}
-              strokeColor={{
-                '0%': 'var(--accent-cyan)',
-                '100%': 'var(--accent-purple)',
-              }}
-              format={(pct) => (
-                <span style={{ color: 'var(--text-primary)', fontSize: 14 }}>
-                  {pct}%
-                </span>
-              )}
-            />
-            <Text style={{ color: 'var(--text3)', fontSize: 11 }}>Overall</Text>
-          </Space>
+          <Progress type="circle" percent={progressPercent} size={60}
+            strokeColor={{ '0%': 'var(--accent-cyan)', '100%': 'var(--accent-purple)' }} />
         </div>
       </Card>
 
-      {/* ===== Steps Bar ===== */}
+      {/* Steps */}
       <Card style={{ marginBottom: 20 }}>
-        <Steps
-          current={currentStep}
-          onChange={handleStepClick}
-          items={stepItems}
-          size="small"
-          style={{ cursor: 'pointer' }}
-        />
+        <Steps current={currentStep} onChange={setCurrentStep} items={stepItems} size="small" style={{ cursor: 'pointer' }} />
       </Card>
 
-      {/* ===== Section Editor Card ===== */}
+      {/* Section Editor */}
       <Card
         style={{ marginBottom: 20 }}
         title={
           <Space size={8} wrap>
-            <span
-              style={{
-                color: 'var(--accent-cyan)',
-                fontFamily: 'inherit',
-                fontWeight: 600,
-                fontSize: 16,
-              }}
-            >
+            <span style={{ color: 'var(--accent-cyan)', fontFamily: 'inherit', fontWeight: 600, fontSize: 16 }}>
               Step {currentStep + 1}: {SECTION_LABELS[currentSectionName]}
             </span>
-            {/* Section-level stats badges */}
-            <Tag color="geekblue" style={{ fontSize: 11 }}>
-              {currentSectionWordCount} words
-            </Tag>
-            <Tag style={{ fontSize: 11 }}>
-              {currentSectionParaCount} paragraphs
-            </Tag>
-            {currentSection?.is_complete && (
-              <Tag color="green" style={{ fontSize: 11 }}>
-                ✓ Marked Complete
-              </Tag>
-            )}
-            <Tooltip title={SECTION_HELP[currentSectionName]} placement="bottom">
-              <BookOutlined
-                style={{ color: 'var(--text-secondary)', cursor: 'help', fontSize: 14 }}
-              />
+            {sections[currentSectionName]?.is_complete && <Tag color="green" style={{ fontSize: 11 }}>✓ Done</Tag>}
+            <Tooltip title={SECTION_HELP[currentSectionName]}>
+              <BookOutlined style={{ color: 'var(--text-secondary)', cursor: 'help' }} />
             </Tooltip>
-            <Button
-              type="primary"
-              ghost
-              size="small"
-              onClick={() => togglePhraseBrowser(currentSectionName)}
-              style={{ fontFamily: 'inherit' }}
-            >
-              📚 Phrasebank
-            </Button>
+            <Button type="primary" ghost size="small" onClick={() => togglePhraseBrowser(currentSectionName)}
+              style={{ fontFamily: 'inherit' }}>📚 Phrasebank</Button>
           </Space>
         }
         extra={
-          <Space size={8}>
-            <Button
-              onClick={handlePrev}
-              disabled={currentStep === 0}
-              icon={<LeftOutlined />}
-              style={{ fontFamily: 'inherit' }}
-            >
-              Previous
+          <Space>
+            <Button onClick={handlePrev} disabled={currentStep === 0} icon={<LeftOutlined />}
+              style={{ fontFamily: 'inherit' }}>Previous</Button>
+            <Button onClick={() => toggleSectionComplete(currentSectionName)}
+              icon={sections[currentSectionName]?.is_complete ? <CheckCircleOutlined /> : undefined}
+              style={{ fontFamily: 'inherit' }}>
+              {sections[currentSectionName]?.is_complete ? '✓ Done' : 'Mark Done'}
             </Button>
-            <Button
-              onClick={handleToggleComplete}
-              icon={
-                currentSection?.is_complete ? (
-                  <CheckCircleOutlined />
-                ) : undefined
-              }
-              style={{ fontFamily: 'inherit' }}
-            >
-              {currentSection?.is_complete ? '✓ Done' : 'Mark Complete'}
-            </Button>
-            <Button
-              type="primary"
-              onClick={handleNext}
-              disabled={currentStep === SECTION_ORDER.length - 1}
-              icon={<RightOutlined />}
-              style={{ fontFamily: 'inherit' }}
-            >
-              Next
-            </Button>
+            <Button type="primary" onClick={handleNext} disabled={currentStep === SECTION_ORDER.length - 1}
+              icon={<RightOutlined />} style={{ fontFamily: 'inherit' }}>Next</Button>
           </Space>
         }
       >
-        <SectionEditor sectionName={currentSectionName} />
+        <StructuredSectionEditor sectionName={currentSectionName} />
       </Card>
 
-      {/* ===== Validation Results Panel ===== */}
+      {/* Validation Issues */}
       {localIssues.length > 0 && (
-        <Card
-          style={{ marginBottom: 20 }}
-          size="small"
-          title={
-            <Space>
-              <ExclamationCircleOutlined
-                style={{
-                  color:
-                    localIssues.some((i) => i.severity === 'error')
-                      ? 'var(--error)'
-                      : 'var(--warning)',
-                }}
-              />
-              <span style={{ fontFamily: 'inherit' }}>
-                Validation Results ({localIssues.length} issue
-                {localIssues.length !== 1 ? 's' : ''})
-              </span>
-            </Space>
-          }
-        >
-          {localIssues.map((issue, idx) => (
-            <Alert
-              key={idx}
-              type={issue.severity === 'error' ? 'error' : 'warning'}
-              showIcon
-              message={
-                <span style={{ fontFamily: 'inherit' }}>
-                  <Tag
-                    color={issue.severity === 'error' ? 'red' : 'orange'}
-                    style={{ fontSize: 10, marginRight: 8 }}
-                  >
-                    {issue.severity.toUpperCase()}
-                  </Tag>
-                  <Text style={{ color: 'var(--text-primary)' }}>
-                    [{issue.section}] {issue.message}
-                  </Text>
-                </span>
-              }
-              description={
-                issue.auto_fix_hint ? (
-                  <Text style={{ fontSize: 12, fontFamily: 'inherit' }}>
-                    💡 {issue.auto_fix_hint}
-                  </Text>
-                ) : undefined
-              }
-              style={{
-                marginBottom: 8,
-                background: 'var(--bg-elevated)',
-                fontFamily: 'inherit',
-              }}
-            />
+        <Card style={{ marginBottom: 20 }} size="small"
+          title={<Space><ExclamationCircleOutlined style={{ color: 'var(--error)' }} />
+            <span style={{ fontFamily: 'inherit' }}>Issues ({localIssues.length})</span></Space>}>
+          {localIssues.map((issue: any, i: number) => (
+            <Alert key={i} type={issue.severity === 'error' ? 'error' : 'warning'} showIcon
+              message={<span style={{ fontFamily: 'inherit' }}>[{issue.section}] {issue.message}</span>}
+              style={{ marginBottom: 6, background: 'var(--bg-elevated)', fontFamily: 'inherit' }} />
           ))}
         </Card>
       )}
 
-      {/* ===== Bottom Action Bar ===== */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: 16,
-          marginTop: 24,
-          flexWrap: 'wrap',
-        }}
-      >
-        <Button
-          onClick={handleValidate}
-          loading={validating}
-          icon={<CheckCircleOutlined />}
-          size="large"
-          style={{ fontFamily: 'inherit' }}
-        >
-          Validate Paper
+      {/* Bottom Buttons */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 24, flexWrap: 'wrap' }}>
+        <Button onClick={handleValidate} icon={<CheckCircleOutlined />} size="large" style={{ fontFamily: 'inherit' }}>
+          Validate All Fields
         </Button>
-        <Button
-          type="primary"
-          size="large"
-          icon={<DownloadOutlined />}
-          onClick={() => setShowExport(true)}
-          className="glow-cyan"
-          style={{ fontFamily: 'inherit' }}
-        >
-          Export Paper
-        </Button>
+        <Button type="primary" size="large" icon={<DownloadOutlined />} onClick={() => setShowExport(true)}
+          className="glow-cyan" style={{ fontFamily: 'inherit' }}>Export Paper</Button>
       </div>
 
-      {/* ===== Phrase Browser Drawer ===== */}
-      <PhraseBrowser
-        open={phraseBrowserOpen}
-        onClose={closePhraseBrowser}
-        sectionName={currentSectionName}
-      />
-
-      {/* ===== Export Modal ===== */}
-      <ExportPreview
-        open={showExport}
-        onClose={() => setShowExport(false)}
-        paperId={paper.id}
-      />
+      <PhraseBrowser open={phraseBrowserOpen} onClose={closePhraseBrowser} sectionName={currentSectionName} />
+      <ExportPreview open={showExport} onClose={() => setShowExport(false)} paperId={paper.id} />
     </div>
   );
 }

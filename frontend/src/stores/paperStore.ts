@@ -1,196 +1,115 @@
 /**
- * Zustand store — central state management for the paper writing wizard.
+ * Zustand store — paper state management with standalone localStorage support.
  *
- * Architecture decisions:
- *   - Zustand over Redux: the state tree is shallow (one paper + N sections),
- *     so Redux middleware overhead is unjustified.
- *   - Optimistic updates: section content changes are applied to local state
- *     immediately, then synced to the backend. On failure, the error is
- *     surfaced but the local state is NOT rolled back (the user's work
- *     should never be lost due to a network hiccup).
- *   - Mock data injection: when ?demo=1 is present in the URL or when
- *     `initWithMockData()` is called, the store is populated with a
- *     realistic H-MODRL agricultural logistics research scenario.
+ * Two modes:
+ *   STANDALONE (isStandalone=true): All data in localStorage, zero backend dependency.
+ *     Use this for demo, development, and competition judging.
+ *   CONNECTED (isStandalone=false): Syncs with FastAPI backend for full pipeline.
  */
 import { create } from 'zustand';
-import type {
-  Paper, PaperSection, SectionContent, Paragraph, TextRun,
-} from '../api/client';
+import type { Paper, PaperSection, SectionContent, Paragraph, TextRun } from '../api/client';
 import * as api from '../api/client';
-import {
-  MOCK_PAPER, MOCK_SECTIONS,
-} from '../data/mockPaperData';
 
 // ============================================================================
 // Constants
 // ============================================================================
 
 export const SECTION_LABELS: Record<string, string> = {
-  abstract: 'Abstract',
-  introduction: 'Introduction',
-  methods: 'Methods',
-  results: 'Results',
-  discussion: 'Discussion',
-  conclusion: 'Conclusion',
+  abstract: 'Abstract', introduction: 'Introduction', methods: 'Methods',
+  results: 'Results', discussion: 'Discussion', conclusion: 'Conclusion',
 };
 
 export const SECTION_HELP: Record<string, string> = {
-  abstract: (
-    'Structured summary following the IMRaD convention. Include: Background '
-    + '(what is known), Objective (what you aimed to do), Methods (how you did it), '
-    + 'Results (what you found), Conclusion (what it means). Typically 150-300 words.'
-  ),
-  introduction: (
-    'Three-move structure: (1) Establish the research territory — demonstrate '
-    + 'the importance of the topic; (2) Identify a gap — what previous research '
-    + 'has not addressed; (3) State your purpose — what this paper aims to '
-    + 'contribute. End with a clear hypothesis or research question.'
-  ),
-  methods: (
-    'Describe your study in sufficient detail that another researcher could '
-    + 'replicate it. Include: study design type, participant/sample information, '
-    + 'materials and instruments, procedure, and statistical analysis plan. '
-    + 'For computational studies: algorithm architecture, parameter settings, '
-    + 'baseline methods, evaluation metrics, and hardware/software environment.'
-  ),
-  results: (
-    'Report your findings objectively. Do NOT interpret results here — that '
-    + 'belongs in the Discussion. Include: descriptive statistics, inferential '
-    + 'test results (with test statistics, p-values, effect sizes), and clear '
-    + 'references to all figures and tables. Report non-significant findings too.'
-  ),
-  discussion: (
-    'Interpret your results: (1) Summarize key findings; (2) Compare with '
-    + 'previous literature (cite at least 3 works); (3) Explain mechanisms or '
-    + 'reasons for your findings; (4) Acknowledge limitations honestly; '
-    + '(5) Discuss practical and theoretical implications; (6) Suggest '
-    + 'specific future research directions.'
-  ),
-  conclusion: (
-    'Summarize the core contribution in 2-3 sentences. State what this work '
-    + 'adds to the literature. Suggest one or two concrete future directions. '
-    + 'Keep it concise — the conclusion is not a second abstract.'
-  ),
+  abstract: 'Structured summary: Background → Objective → Methods → Results → Conclusion. Each sub-section is typically 2-3 sentences. 150-300 words total.',
+  introduction: 'Three moves: (1) Establish importance of the topic; (2) Identify what previous research has NOT addressed (the gap); (3) State your research purpose and hypothesis.',
+  methods: 'Describe in enough detail that another researcher could replicate your study. Include: study design, participants/materials, procedure, and statistical analysis.',
+  results: 'Report findings objectively — do NOT interpret here. Include descriptive stats, inferential test results (with test statistics and p-values), and references to all figures and tables.',
+  discussion: '(1) Summarize key findings; (2) Compare with literature (cite ≥3 works); (3) Explain mechanisms; (4) Acknowledge limitations; (5) State implications.',
+  conclusion: 'Summarize the core contribution in 2-3 sentences. State what this work adds to the field. Suggest 1-2 concrete future directions. Keep it concise.',
 };
 
-export const SECTION_ORDER: string[] = [
-  'abstract',
-  'introduction',
-  'methods',
-  'results',
-  'discussion',
-  'conclusion',
-];
+export const SECTION_ORDER = ['abstract', 'introduction', 'methods', 'results', 'discussion', 'conclusion'];
 
 // ============================================================================
-// Validation severity type
+// localStorage keys
 // ============================================================================
 
-export type ValidationSeverity = 'error' | 'warning' | 'info';
-
-export interface ValidationIssue {
-  rule_id: string;
-  section: string;
-  severity: ValidationSeverity;
-  message: string;
-  auto_fix_hint: string | null;
-}
+const LS_PAPER_KEY = 'sciwriter_paper';
+const LS_SECTIONS_KEY = 'sciwriter_sections';
 
 // ============================================================================
 // Store interface
 // ============================================================================
 
 interface PaperStore {
-  // ---- Paper state ----
   paper: Paper | null;
   sections: Record<string, PaperSection>;
   isLoading: boolean;
   error: string | null;
-
-  // ---- Wizard state ----
   currentStep: number;
-
-  // ---- PhraseBrowser state ----
   phraseBrowserOpen: boolean;
   activeSectionForPhrases: string | null;
+  isStandalone: boolean;
 
-  // ---- Validation state ----
-  validationIssues: ValidationIssue[];
-
-  // ---- Demo mode ----
-  isDemoMode: boolean;
-
-  // ---- Actions ----
-  /** Initialize the store with mock demo data (no server required). */
-  initWithMockData: () => void;
-
-  /** Create a new paper via the backend API. */
+  /** Create a blank paper in localStorage (no backend). */
+  createStandalonePaper: (title: string, journal?: string) => void;
+  /** Create a paper via the backend API. */
   createPaper: (title: string, journal?: string) => Promise<void>;
-
-  /** Load an existing paper from the backend. */
+  /** Load paper from backend. */
   loadPaper: (id: string) => Promise<void>;
-
-  /** Navigate to a specific wizard step. */
   setCurrentStep: (step: number) => void;
-
-  /** Persist a section's structured content to backend and local state. */
-  updateSectionContent: (
-    sectionName: string, content: SectionContent,
-  ) => Promise<void>;
-
-  /** Update only the plain text field of a section. */
-  updateSectionPlainText: (
-    sectionName: string, text: string,
-  ) => Promise<void>;
-
-  /** Mark a section as complete / incomplete. */
+  /** Update a section's structured content. Persists to localStorage or backend. */
+  updateSectionContent: (sectionName: string, content: SectionContent) => Promise<void>;
   toggleSectionComplete: (sectionName: string) => Promise<void>;
-
-  /** Toggle the phrase browser for a section. */
   togglePhraseBrowser: (sectionName?: string) => void;
-
-  /** Close the phrase browser. */
   closePhraseBrowser: () => void;
-
-  /** Insert phrase text into a specific paragraph within a section. */
-  insertPhraseIntoSection: (
-    sectionName: string,
-    paragraphIndex: number,
-    phraseText: string,
-  ) => void;
-
-  /** Append a new empty paragraph to a section. */
-  addParagraph: (sectionName: string) => void;
-
-  /** Delete a paragraph from a section by index. */
-  deleteParagraph: (sectionName: string, paragraphIndex: number) => void;
-
-  /** Update a single run within a paragraph. */
-  updateParagraphRun: (
-    sectionName: string,
-    paragraphIndex: number,
-    runIndex: number,
-    run: TextRun,
-  ) => void;
-
-  /** Insert a new run into a paragraph at a specific position. */
-  insertRunIntoParagraph: (
-    sectionName: string,
-    paragraphIndex: number,
-    runIndex: number,
-    run: TextRun,
-  ) => void;
-
-  /** Clear all errors. */
+  insertPhraseIntoSection: (sectionName: string, fieldKey: string, phraseText: string) => void;
   clearError: () => void;
 }
 
 // ============================================================================
-// Store Implementation
+// localStorage helpers
+// ============================================================================
+
+function loadFromStorage(): { paper: Paper | null; sections: Record<string, PaperSection> } {
+  try {
+    const paperStr = localStorage.getItem(LS_PAPER_KEY);
+    const sectionsStr = localStorage.getItem(LS_SECTIONS_KEY);
+    if (paperStr && sectionsStr) {
+      return {
+        paper: JSON.parse(paperStr),
+        sections: JSON.parse(sectionsStr),
+      };
+    }
+  } catch { /* corrupted data, ignore */ }
+  return { paper: null, sections: {} };
+}
+
+function saveToStorage(paper: Paper | null, sections: Record<string, PaperSection>) {
+  try {
+    if (paper) localStorage.setItem(LS_PAPER_KEY, JSON.stringify(paper));
+    localStorage.setItem(LS_SECTIONS_KEY, JSON.stringify(sections));
+  } catch { /* quota exceeded, ignore */ }
+}
+
+function makeSection(paperId: string, name: string): PaperSection {
+  return {
+    id: `local_${name}_${Date.now()}`,
+    paper_id: paperId,
+    section_name: name,
+    content_json: { paragraphs: [], phrases_used: [], figures_refs: [], table_refs: [], _fieldValues: {} },
+    plain_text: '',
+    word_count: 0,
+    is_complete: false,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+// ============================================================================
+// Store
 // ============================================================================
 
 export const usePaperStore = create<PaperStore>((set, get) => ({
-  // ---- Initial State ----
   paper: null,
   sections: {},
   isLoading: false,
@@ -198,45 +117,41 @@ export const usePaperStore = create<PaperStore>((set, get) => ({
   currentStep: 0,
   phraseBrowserOpen: false,
   activeSectionForPhrases: null,
-  validationIssues: [],
-  isDemoMode: false,
+  isStandalone: false,
 
-  // ---- Demo Mode ----
-  initWithMockData: () => {
-    const { paper, sections } = MOCK_PAPER && MOCK_SECTIONS
-      ? { paper: MOCK_PAPER, sections: MOCK_SECTIONS }
-      : { paper: null, sections: {} };
-
-    set({
-      paper: paper as Paper | null,
-      sections: sections as Record<string, PaperSection>,
-      isLoading: false,
-      error: null,
-      currentStep: 2,  // Start on Methods (the richest section)
-      isDemoMode: true,
-    });
+  // ---- Standalone: Create paper in localStorage ----
+  createStandalonePaper: (title, journal) => {
+    const id = `local_paper_${Date.now()}`;
+    const now = new Date().toISOString();
+    const paper: Paper = {
+      id,
+      user_id: 'local_user',
+      title: title || 'Untitled Paper',
+      status: 'draft',
+      journal_target: journal || null,
+      citation_style: journal === 'nature' ? 'nature' : journal === 'elsevier' ? 'apa' : 'ieee',
+      created_at: now,
+      updated_at: now,
+    };
+    const sections: Record<string, PaperSection> = {};
+    for (const name of SECTION_ORDER) {
+      sections[name] = makeSection(id, name);
+    }
+    saveToStorage(paper, sections);
+    set({ paper, sections, isLoading: false, error: null, currentStep: 0, isStandalone: true });
   },
 
-  // ---- API Actions ----
+  // ---- Connected: Create paper via API ----
   createPaper: async (title, journal) => {
     set({ isLoading: true, error: null });
     try {
       const paper = await api.createPaper(title, journal);
-      const sectionList = await api.getSections(paper.id);
-      const sectionsMap: Record<string, PaperSection> = {};
-      for (const s of sectionList) {
-        sectionsMap[s.section_name] = s;
-      }
-      set({
-        paper,
-        sections: sectionsMap,
-        isLoading: false,
-        currentStep: 0,
-        isDemoMode: false,
-      });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      set({ error: msg, isLoading: false });
+      const list = await api.getSections(paper.id);
+      const map: Record<string, PaperSection> = {};
+      for (const s of list) map[s.section_name] = s;
+      set({ paper, sections: map, isLoading: false, currentStep: 0, isStandalone: false });
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
     }
   },
 
@@ -244,266 +159,118 @@ export const usePaperStore = create<PaperStore>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const paper = await api.getPaper(id);
-      const sectionList = await api.getSections(paper.id);
-      const sectionsMap: Record<string, PaperSection> = {};
-      for (const s of sectionList) {
-        sectionsMap[s.section_name] = s;
-      }
-      set({
-        paper,
-        sections: sectionsMap,
-        isLoading: false,
-        isDemoMode: false,
-      });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      set({ error: msg, isLoading: false });
+      const list = await api.getSections(paper.id);
+      const map: Record<string, PaperSection> = {};
+      for (const s of list) map[s.section_name] = s;
+      set({ paper, sections: map, isLoading: false, isStandalone: false });
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
     }
   },
 
   setCurrentStep: (step) => set({ currentStep: step }),
 
-  // ---- Section Content Operations ----
-
+  // ---- Update section content ----
   updateSectionContent: async (sectionName, content) => {
-    const { paper, sections, isDemoMode } = get();
+    const { paper, sections, isStandalone } = get();
     if (!paper) return;
 
-    // Optimistic local update (never roll back — user data is sacred)
-    const currentSection = sections[sectionName];
-    if (currentSection) {
-      const plainText = extractPlainText(content);
-      const wordCount = countWords(content);
-      const optimisticUpdate: PaperSection = {
-        ...currentSection,
-        content_json: content as unknown as Record<string, unknown>,
-        plain_text: plainText,
-        word_count: wordCount,
-      } as PaperSection;
+    // Build section
+    const current = sections[sectionName];
+    if (!current) return;
+    const plainText = extractText(content);
+    const updated: PaperSection = {
+      ...current,
+      content_json: content as any,
+      plain_text: plainText,
+      word_count: plainText.split(/\s+/).filter(Boolean).length,
+    };
 
-      set({
-        sections: {
-          ...get().sections,
-          [sectionName]: optimisticUpdate,
-        },
-      });
+    // Optimistic update
+    const newSections = { ...get().sections, [sectionName]: updated };
+    set({ sections: newSections });
+
+    // Persist
+    if (isStandalone) {
+      saveToStorage(paper, newSections);
+      return;
     }
 
-    // In demo mode, skip backend sync
-    if (isDemoMode) return;
-
-    // Backend sync (fire-and-forget for responsiveness)
     try {
       const result = await api.updateSection(paper.id, sectionName, {
         content_json: content,
-        plain_text: extractPlainText(content),
-        word_count: countWords(content),
+        plain_text: plainText,
+        word_count: updated.word_count,
       });
-      set({
-        sections: { ...get().sections, [sectionName]: result },
-      });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Save failed';
-      set({ error: msg });
-      // NOTE: local state is NOT rolled back — the user's changes persist
-    }
-  },
-
-  updateSectionPlainText: async (sectionName, text) => {
-    const { paper, isDemoMode } = get();
-    if (!paper) return;
-
-    if (isDemoMode) return;
-
-    try {
-      const result = await api.updateSection(paper.id, sectionName, {
-        plain_text: text,
-        word_count: text.split(/\s+/).filter(Boolean).length,
-      });
-      set({
-        sections: { ...get().sections, [sectionName]: result },
-      });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Save failed';
-      set({ error: msg });
+      set({ sections: { ...get().sections, [sectionName]: result } });
+    } catch (err: any) {
+      set({ error: err.message });
     }
   },
 
   toggleSectionComplete: async (sectionName) => {
-    const { paper, sections, isDemoMode } = get();
+    const { paper, sections, isStandalone } = get();
     if (!paper) return;
+    const sec = sections[sectionName];
+    if (!sec) return;
+    const newVal = !sec.is_complete;
+    const newSections = { ...sections, [sectionName]: { ...sec, is_complete: newVal } };
+    set({ sections: newSections });
 
-    const section = sections[sectionName];
-    if (!section) return;
-
-    const newIsComplete = !section.is_complete;
-
-    // Optimistic update
-    set({
-      sections: {
-        ...sections,
-        [sectionName]: { ...section, is_complete: newIsComplete },
-      },
-    });
-
-    if (isDemoMode) return;
-
-    try {
-      await api.updateSection(paper.id, sectionName, {
-        is_complete: newIsComplete,
-      });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Save failed';
-      set({ error: msg });
+    if (isStandalone) {
+      saveToStorage(paper, newSections);
+      return;
     }
+    try { await api.updateSection(paper.id, sectionName, { is_complete: newVal }); } catch {}
   },
-
-  // ---- Phrase Browser ----
 
   togglePhraseBrowser: (sectionName) => {
-    const { phraseBrowserOpen, activeSectionForPhrases } = get();
-    if (phraseBrowserOpen && activeSectionForPhrases === sectionName) {
+    const s = get();
+    if (s.phraseBrowserOpen && s.activeSectionForPhrases === sectionName) {
       set({ phraseBrowserOpen: false, activeSectionForPhrases: null });
     } else {
-      set({
-        phraseBrowserOpen: true,
-        activeSectionForPhrases: sectionName || null,
-      });
+      set({ phraseBrowserOpen: true, activeSectionForPhrases: sectionName || null });
     }
   },
+  closePhraseBrowser: () => set({ phraseBrowserOpen: false }),
 
-  closePhraseBrowser: () => {
-    set({ phraseBrowserOpen: false, activeSectionForPhrases: null });
-  },
-
-  // ---- Paragraph / Run Mutations ----
-
-  insertPhraseIntoSection: (sectionName, paragraphIndex, phraseText) => {
+  insertPhraseIntoSection: (sectionName, fieldKey, phraseText) => {
     const { sections } = get();
-    const section = sections[sectionName];
-    if (!section) return;
+    const sec = sections[sectionName];
+    if (!sec) return;
 
-    const content = (
-      (section.content_json as unknown as SectionContent) || emptyContent()
-    );
-    const paragraphs = [...content.paragraphs];
+    const content = (sec.content_json || {}) as any;
+    const fv = { ...(content._fieldValues || {}) };
+    const existing = fv[fieldKey] || '';
+    fv[fieldKey] = existing ? `${existing.trimEnd()} ${phraseText}` : phraseText;
 
-    // Ensure the target paragraph exists
-    while (paragraphs.length <= paragraphIndex) {
-      paragraphs.push(emptyParagraph());
-    }
+    const newContent = {
+      ...content,
+      _fieldValues: fv,
+      paragraphs: Object.entries(fv)
+        .filter(([, v]) => String(v).trim())
+        .map(([k, v]) => ({ id: `${sectionName}_${k}`, runs: [{ type: 'text', text: String(v) }] })),
+      phrases_used: content.phrases_used || [],
+      figures_refs: content.figures_refs || [],
+      table_refs: content.table_refs || [],
+    };
 
-    const runs = [...paragraphs[paragraphIndex].runs];
-    runs.push({ type: 'text', text: phraseText });
-    paragraphs[paragraphIndex] = { ...paragraphs[paragraphIndex], runs };
-
-    get().updateSectionContent(sectionName, { ...content, paragraphs });
-  },
-
-  addParagraph: (sectionName) => {
-    const { sections } = get();
-    const section = sections[sectionName];
-    if (!section) return;
-
-    const content = (
-      (section.content_json as unknown as SectionContent) || emptyContent()
-    );
-    const paragraphs = [...content.paragraphs];
-
-    paragraphs.push(emptyParagraph());
-
-    get().updateSectionContent(sectionName, { ...content, paragraphs });
-  },
-
-  deleteParagraph: (sectionName, paragraphIndex) => {
-    const { sections } = get();
-    const section = sections[sectionName];
-    if (!section) return;
-
-    const content = (
-      (section.content_json as unknown as SectionContent) || emptyContent()
-    );
-    const paragraphs = content.paragraphs.filter((_, i) => i !== paragraphIndex);
-
-    get().updateSectionContent(sectionName, { ...content, paragraphs });
-  },
-
-  updateParagraphRun: (sectionName, paragraphIndex, runIndex, run) => {
-    const { sections } = get();
-    const section = sections[sectionName];
-    if (!section) return;
-
-    const content = (
-      (section.content_json as unknown as SectionContent) || emptyContent()
-    );
-    const paragraphs = [...content.paragraphs];
-
-    if (paragraphs[paragraphIndex]) {
-      const runs = [...paragraphs[paragraphIndex].runs];
-      if (runs[runIndex]) {
-        runs[runIndex] = { ...run };
-        paragraphs[paragraphIndex] = { ...paragraphs[paragraphIndex], runs };
-      }
-    }
-
-    get().updateSectionContent(sectionName, { ...content, paragraphs });
-  },
-
-  insertRunIntoParagraph: (sectionName, paragraphIndex, runIndex, run) => {
-    const { sections } = get();
-    const section = sections[sectionName];
-    if (!section) return;
-
-    const content = (
-      (section.content_json as unknown as SectionContent) || emptyContent()
-    );
-    const paragraphs = [...content.paragraphs];
-
-    if (paragraphs[paragraphIndex]) {
-      const runs = [...paragraphs[paragraphIndex].runs];
-      runs.splice(runIndex, 0, run);
-      paragraphs[paragraphIndex] = { ...paragraphs[paragraphIndex], runs };
-    }
-
-    get().updateSectionContent(sectionName, { ...content, paragraphs });
+    get().updateSectionContent(sectionName, newContent);
   },
 
   clearError: () => set({ error: null }),
 }));
 
 // ============================================================================
-// Helper Functions
+// Helpers
 // ============================================================================
 
-function emptyParagraph(): Paragraph {
-  return {
-    id: `para_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-    runs: [{ type: 'text', text: '' }],
-  };
-}
-
-function emptyContent(): SectionContent {
-  return {
-    paragraphs: [],
-    phrases_used: [],
-    figures_refs: [],
-    table_refs: [],
-  };
-}
-
-function extractPlainText(content: SectionContent): string {
+function extractText(content: SectionContent): string {
+  if ((content as any)?._fieldValues) {
+    return Object.values((content as any)._fieldValues).filter(Boolean).join('\n\n');
+  }
   if (!content?.paragraphs) return '';
   return content.paragraphs
-    .map((p: Paragraph) =>
-      (p.runs || [])
-        .filter((r: TextRun) => r.type === 'text')
-        .map((r: TextRun) => r.text || '')
-        .join(' ')
-    )
+    .map((p: any) => (p.runs || []).filter((r: any) => r.type === 'text').map((r: any) => r.text || '').join(' '))
     .join('\n\n');
-}
-
-function countWords(content: SectionContent): number {
-  const text = extractPlainText(content);
-  return text.split(/\s+/).filter(Boolean).length;
 }
