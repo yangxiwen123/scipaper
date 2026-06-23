@@ -212,7 +212,6 @@ export function ExportPreview({ open, onClose, paperId }: Props) {
                 )}
               </div>
             }
-            type="success"
             showIcon
             style={{ fontFamily: 'inherit' }}
           />

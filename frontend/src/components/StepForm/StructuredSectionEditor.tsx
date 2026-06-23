@@ -30,7 +30,7 @@ interface Props {
 
 export function StructuredSectionEditor({ sectionName }: Props) {
   const {
-    sections, updateSectionContent, updateSectionPlainText,
+    sections, updateSectionContent,
     togglePhraseBrowser,
   } = usePaperStore();
 
