@@ -15,6 +15,7 @@ SCI Writer — a zero-AI, traditional-software-architecture SCI paper writing as
 ```bash
 # Frontend (standalone mode works without backend)
 cd frontend && npm run dev          # http://localhost:3000
+cd frontend && npx tsc --noEmit     # TypeScript type check
 
 # Backend (requires PostgreSQL running)
 cd backend
@@ -26,6 +27,13 @@ uvicorn app.main:app --reload --port 8000   # http://localhost:8000/docs
 docker-compose up -d                # postgres + redis + languagetool + backend + celery
 docker-compose exec backend python -m seed_data.run_seed
 ```
+
+## Git & Environment
+
+- 项目位于 `D:\CodeProject\scipaper`
+- **必须使用 SSH push**：`git remote set-url origin git@github.com:yangxiwen123/scipaper.git`。HTTPS 443 端口在本地网络被阻断。
+- 提交前运行 `npx tsc --noEmit` 确保零 TypeScript 错误。
+- `competition.html` 是参赛技术方案书，每次架构变更后需同步更新。
 
 ## Architecture (the non-obvious parts)
 
