@@ -3,629 +3,1438 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCI Writer — 论文写作辅助系统 | 创造力大赛参赛作品</title>
+<title>SCI Writer — 论文写作辅助系统 | 创造力大赛技术方案书</title>
 <style>
   :root {
-    --bg: #0a0e17;
+    --bg: #090d14;
     --card: #111827;
-    --card2: #1a2235;
-    --border: #1e2d45;
+    --card2: #192132;
+    --border: #1e2d4a;
     --cyan: #38bdf8;
     --green: #34d399;
     --purple: #a78bfa;
     --orange: #fbbf24;
     --red: #f87171;
+    --pink: #f472b6;
     --text: #e2e8f0;
     --text2: #94a3b8;
     --text3: #64748b;
   }
 
-  * { margin:0; padding:0; box-sizing:border-box; }
+  *,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+
   body {
-    font-family: -apple-system, "Microsoft YaHei", sans-serif;
+    font-family: -apple-system, "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
     background: var(--bg);
     color: var(--text);
-    line-height: 1.7;
+    line-height: 1.8;
     overflow-x: hidden;
+    font-size: 15px;
   }
 
-  /* ===== HERO ===== */
-  .hero {
-    min-height: 100vh;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center;
-    padding: 40px 20px;
-    background: radial-gradient(ellipse at center, #0f1d33 0%, #0a0e17 70%);
-    position: relative;
-    overflow: hidden;
+  /* ===== NAV ===== */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(9,13,20,0.85); backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 52px;
   }
-  .hero::before {
-    content: '';
-    position: absolute; inset:0;
-    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-    opacity: 0.5; pointer-events: none;
-  }
-  .hero-badge {
-    display: inline-block;
-    border: 1px solid var(--cyan);
-    color: var(--cyan);
-    padding: 6px 20px; border-radius: 100px;
-    font-size: 14px; letter-spacing: 2px;
-    margin-bottom: 32px;
-    backdrop-filter: blur(10px);
-    animation: fadeInDown 0.8s ease;
-  }
-  .hero h1 {
-    font-size: clamp(36px, 6vw, 72px);
-    font-weight: 800;
-    background: linear-gradient(135deg, var(--cyan), var(--purple));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    margin-bottom: 16px;
-    animation: fadeInDown 0.8s ease;
-  }
-  .hero .subtitle {
-    font-size: 20px; color: var(--text2);
-    max-width: 680px; margin-bottom: 40px;
-    animation: fadeInUp 0.8s ease;
-  }
-  .hero .tags { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-bottom:48px; }
-  .hero .tags span {
-    background: var(--card); border:1px solid var(--border);
-    padding: 6px 16px; border-radius: 8px;
-    font-size: 13px; color: var(--text2);
-  }
-  .scroll-hint {
-    position: absolute; bottom: 32px;
-    color: var(--text3); font-size: 13px;
-    animation: bounce 2s infinite;
-  }
-
-  /* ===== STATS BAR ===== */
-  .stats-bar {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    max-width: 900px; margin: 0 auto 80px;
-    gap: 1px; background: var(--border);
-    border-radius: 16px; overflow: hidden;
-    animation: fadeInUp 1s ease;
-  }
-  .stats-bar .stat {
-    background: var(--card);
-    padding: 24px 16px; text-align: center;
-  }
-  .stat .num { font-size: 32px; font-weight: 700; background: linear-gradient(135deg, var(--cyan), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .stat .label { font-size: 13px; color: var(--text3); margin-top: 4px; }
+  nav .logo { font-weight: 700; color: var(--cyan); font-size: 16px; letter-spacing: 1px; }
+  nav .links { display: flex; gap: 24px; font-size: 13px; }
+  nav .links a { color: var(--text2); text-decoration: none; transition: color 0.2s; }
+  nav .links a:hover { color: var(--cyan); }
 
   /* ===== SECTIONS ===== */
-  .section {
-    max-width: 1100px; margin: 0 auto;
-    padding: 80px 24px;
-  }
-  .section-title {
-    font-size: 14px; letter-spacing: 3px;
-    color: var(--cyan); margin-bottom: 8px; text-transform: uppercase;
-  }
-  .section h2 {
-    font-size: 36px; font-weight: 700; margin-bottom: 16px;
-  }
-  .section .desc { color: var(--text2); font-size: 17px; max-width: 640px; margin-bottom: 48px; }
+  section { padding: 80px 24px; }
+  .container { max-width: 1200px; margin: 0 auto; }
 
-  /* ===== CARDS ===== */
-  .card-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 20px;
+  .sec-tag {
+    display: inline-block; font-size: 12px; letter-spacing: 3px;
+    color: var(--cyan); margin-bottom: 12px; font-weight: 600;
   }
+  h1 {
+    font-size: clamp(32px, 5vw, 56px); font-weight: 800; line-height: 1.25;
+    background: linear-gradient(135deg, var(--cyan) 0%, var(--purple) 50%, var(--pink) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  h2 {
+    font-size: 30px; font-weight: 700; margin-bottom: 16px;
+    color: var(--text);
+  }
+  h3 {
+    font-size: 20px; font-weight: 600; margin: 32px 0 12px;
+    color: var(--text);
+    border-left: 3px solid var(--cyan); padding-left: 12px;
+  }
+  h4 { font-size: 17px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+  .desc { color: var(--text2); font-size: 16px; max-width: 700px; }
+  .desc-large { color: var(--text2); font-size: 17px; line-height: 2; margin: 24px 0; }
+
+  /* ===== HERO ===== */
+  #hero {
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    padding: 100px 20px 60px;
+    background: radial-gradient(ellipse 800px 500px at 50% 30%, rgba(56,189,248,0.06) 0%, transparent 70%),
+                radial-gradient(ellipse 600px 400px at 80% 70%, rgba(167,139,250,0.05) 0%, transparent 70%);
+  }
+  #hero .subtitle {
+    font-size: 19px; color: var(--text2); max-width: 780px;
+    margin: 20px auto 36px; line-height: 1.9;
+  }
+  #hero .meta-line { color: var(--text3); font-size: 14px; }
+
+  /* ===== FEATURE CARDS ===== */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; margin-top: 32px; }
   .card {
-    background: var(--card);
-    border: 1px solid var(--border); border-radius: 16px;
-    padding: 32px;
-    transition: all 0.3s;
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 36px; transition: all 0.3s ease;
   }
-  .card:hover {
-    border-color: var(--cyan);
-    box-shadow: 0 0 30px rgba(56,189,248,0.08);
-    transform: translateY(-2px);
-  }
-  .card-icon { font-size: 32px; margin-bottom: 16px; }
-  .card h4 { font-size: 18px; margin-bottom: 8px; }
-  .card p { color: var(--text2); font-size: 14px; line-height: 1.8; }
+  .card:hover { border-color: var(--cyan); box-shadow: 0 0 40px rgba(56,189,248,0.06); transform: translateY(-2px); }
+  .card .icon { font-size: 34px; margin-bottom: 18px; }
+  .card h4 { font-size: 18px; margin-bottom: 10px; }
+  .card p { color: var(--text2); font-size: 14px; line-height: 1.9; }
 
-  /* ===== ARCHITECTURE ===== */
-  .arch-diagram {
-    background: var(--card);
-    border: 1px solid var(--border); border-radius: 16px;
-    padding: 40px;
-    overflow-x: auto;
+  /* ===== BIG CARDS (full width) ===== */
+  .big-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 48px; margin: 32px 0;
   }
-  .arch-diagram pre {
-    font-family: "JetBrains Mono", "Fira Code", monospace;
-    font-size: 14px; line-height: 1.6;
-    color: var(--text); white-space: pre;
+  .big-card:hover { border-color: rgba(56,189,248,0.3); }
+
+  /* ===== CODE BLOCK ===== */
+  .code-block {
+    background: #0a0f1a; border: 1px solid var(--border); border-radius: 10px;
+    overflow-x: auto; margin: 16px 0; font-size: 13px;
   }
-  .arch-row { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 16px 0; }
+  .code-block pre {
+    padding: 24px; font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", "Consolas", monospace;
+    line-height: 1.65; color: var(--text2); white-space: pre;
+  }
+  .code-block .kw { color: #c792ea; }
+  .code-block .str { color: #c3e88d; }
+  .code-block .num { color: #f78c6c; }
+  .code-block .cmt { color: #546e7a; font-style: italic; }
+  .code-block .fn { color: #82aaff; }
+  .code-block .type { color: #ffcb6b; }
+
+  /* ===== ARCH DIAGRAM BOXES ===== */
+  .arch-layer { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 12px 0; }
   .arch-box {
     background: var(--card2); border: 1px solid var(--border);
-    border-radius: 12px; padding: 16px 24px; text-align: center;
-    min-width: 140px;
-  }
-  .arch-box.cyan { border-color: var(--cyan); }
-  .arch-box.green { border-color: var(--green); }
-  .arch-box.purple { border-color: var(--purple); }
-  .arch-box .box-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
-  .arch-box .box-sub { font-size: 12px; color: var(--text3); }
-  .arch-arrow { display:flex; align-items:center; color: var(--text3); font-size: 20px; }
-
-  /* ===== FLOW ===== */
-  .flow {
-    display: flex; align-items: center; gap: 12px;
-    flex-wrap: wrap; justify-content: center;
-    margin: 32px 0;
-  }
-  .flow-step {
-    background: var(--card2); border: 1px solid var(--border);
-    border-radius: 12px; padding: 16px 20px;
-    text-align: center; min-width: 130px;
+    border-radius: 12px; padding: 18px 28px; text-align: center; min-width: 150px;
     transition: all 0.3s;
   }
+  .arch-box.b-cyan { border-color: rgba(56,189,248,0.5); }
+  .arch-box.b-green { border-color: rgba(52,211,153,0.5); }
+  .arch-box.b-purple { border-color: rgba(167,139,250,0.5); }
+  .arch-box.b-orange { border-color: rgba(251,191,36,0.5); }
+  .arch-box .box-t { font-weight: 600; font-size: 15px; }
+  .arch-box .box-s { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .arch-arrow-row { text-align: center; color: var(--text3); font-size: 18px; margin: 4px 0; }
+
+  /* ===== FLOW ===== */
+  .flow { display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 32px 0; }
+  .flow-step {
+    background: var(--card2); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 22px; text-align: center; min-width: 140px; transition: all 0.3s;
+  }
   .flow-step:hover { border-color: var(--cyan); }
-  .flow-step .step-num {
+  .flow-step .sn {
     width: 28px; height: 28px; border-radius: 50%;
     background: linear-gradient(135deg, var(--cyan), var(--purple));
-    color: white; font-size: 13px; font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 8px;
+    color: #fff; font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 8px;
   }
-  .flow-step .step-title { font-weight: 600; font-size: 14px; }
-  .flow-step .step-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
-  .flow-arrow { color: var(--cyan); font-size: 20px; }
+  .flow-step .st { font-weight: 600; font-size: 14px; }
+  .flow-step .ss { font-size: 11px; color: var(--text3); margin-top: 4px; }
+  .flow-arr { color: var(--cyan); font-size: 22px; display: flex; align-items: center; padding-top: 12px; }
 
-  /* ===== FEATURE TABLE ===== */
-  .feature-table {
-    width: 100%; border-collapse: collapse;
+  /* ===== TABLES ===== */
+  table { width: 100%; border-collapse: collapse; margin: 24px 0; }
+  th, td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
+  th { color: var(--text3); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+  tr:hover td { background: rgba(56,189,248,0.025); }
+  code {
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    background: rgba(56,189,248,0.1); color: var(--cyan);
+    padding: 2px 8px; border-radius: 4px; font-size: 12px;
   }
-  .feature-table th, .feature-table td {
-    padding: 16px 20px; text-align: left;
-    border-bottom: 1px solid var(--border);
-    font-size: 14px;
-  }
-  .feature-table th { color: var(--text3); font-weight: 500; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
-  .feature-table tr:hover td { background: rgba(56,189,248,0.03); }
   .badge {
-    display: inline-block;
-    padding: 3px 10px; border-radius: 6px;
-    font-size: 11px; font-weight: 600;
+    display: inline-block; padding: 3px 10px; border-radius: 7px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
   }
-  .badge.cyan { background: rgba(56,189,248,0.15); color: var(--cyan); }
-  .badge.green { background: rgba(52,211,153,0.15); color: var(--green); }
-  .badge.purple { background: rgba(167,139,250,0.15); color: var(--purple); }
-  .badge.orange { background: rgba(251,191,36,0.15); color: var(--orange); }
+  .b-cyan { background: rgba(56,189,248,0.13); color: var(--cyan); }
+  .b-green { background: rgba(52,211,153,0.13); color: var(--green); }
+  .b-purple { background: rgba(167,139,250,0.13); color: var(--purple); }
+  .b-orange { background: rgba(251,191,36,0.13); color: var(--orange); }
+  .b-red { background: rgba(248,113,113,0.13); color: var(--red); }
+
+  /* ===== TWO COLUMN ===== */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* ===== JSON DISPLAY ===== */
+  .json-view {
+    background: #0a0f1a; border: 1px solid var(--border); border-radius: 10px;
+    padding: 24px; font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 13px; line-height: 1.7; color: var(--text2); overflow-x: auto;
+    margin: 16px 0;
+  }
+  .json-view .key { color: #82aaff; }
+  .json-view .val-str { color: #c3e88d; }
+  .json-view .val-num { color: #f78c6c; }
+  .json-view .val-bool { color: #ffcb6b; }
+  .json-view .brace { color: var(--text3); }
+
+  /* ===== PIPELINE ===== */
+  .pipeline { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; margin: 24px 0; }
+  .pipeline-box {
+    background: var(--card2); border: 2px dashed var(--border); border-radius: 12px;
+    padding: 28px 20px; text-align: center; min-width: 140px; transition: all 0.3s;
+  }
+  .pipeline-box.highlight { border-color: var(--cyan); border-style: solid; background: rgba(56,189,248,0.05); }
+  .pipeline-box .p-title { font-weight: 600; font-size: 14px; }
+  .pipeline-box .p-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+  .pipeline-arrow { color: var(--cyan); font-size: 24px; font-weight: 300; }
+
+  /* ===== STATS ===== */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border-radius: 16px; overflow: hidden; margin: 32px 0; }
+  .stats-row .stat { background: var(--card); padding: 28px; text-align: center; }
+  .stat .num { font-size: 36px; font-weight: 700; background: linear-gradient(135deg, var(--cyan), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .stat .lbl { font-size: 13px; color: var(--text3); margin-top: 6px; }
+  @media (max-width: 768px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+
+  /* ===== AUTHOR NOTE ===== */
+  .author-note {
+    background: linear-gradient(135deg, rgba(56,189,248,0.06), rgba(167,139,250,0.06));
+    border: 1px solid var(--border); border-radius: 14px; padding: 32px;
+    margin: 32px 0;
+  }
 
   /* ===== FOOTER ===== */
-  .footer {
-    text-align: center; padding: 60px 20px;
-    color: var(--text3); font-size: 14px;
+  footer {
+    text-align: center; padding: 60px 24px; color: var(--text3); font-size: 13px;
     border-top: 1px solid var(--border);
   }
-  .footer a { color: var(--cyan); text-decoration: none; }
+  footer a { color: var(--cyan); text-decoration: none; }
 
-  /* ===== ANIMATIONS ===== */
-  @keyframes fadeInDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
-  @keyframes fadeInUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-  @keyframes bounce { 0%,100% { transform:translateY(0); } 50% { transform:translateY(8px); } }
-
-  @media (max-width: 768px) {
-    .stats-bar { grid-template-columns: repeat(2, 1fr); }
-    .hero h1 { font-size: 32px; }
-    .section { padding: 48px 16px; }
-    .section h2 { font-size: 28px; }
-  }
+  html { scroll-behavior: smooth; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 </style>
 </head>
 <body>
 
+<!-- ===== NAVIGATION ===== -->
+<nav>
+  <span class="logo">SCI WRITER</span>
+  <div class="links">
+    <a href="#problem">问题分析</a>
+    <a href="#workflow">工作流</a>
+    <a href="#phrasebank">句型库</a>
+    <a href="#architecture">架构</a>
+    <a href="#engines">核心引擎</a>
+    <a href="#database">数据库</a>
+    <a href="#features">功能清单</a>
+  </div>
+</nav>
+
 <!-- ===== HERO ===== -->
-<section class="hero">
-  <div class="hero-badge">🏆 创造力大赛参赛作品</div>
+<section id="hero">
+  <div class="sec-tag" style="margin-bottom:20px;">🏆 创造力大赛 · 技术方案书</div>
   <h1>SCI Writer</h1>
   <p class="subtitle">
-    一款基于传统软件工程架构的 SCI 论文写作辅助系统<br>
-    让零学术背景的普通人，通过引导式表单和学术句型库，写出完全符合 SCI 规范的论文
+    一款完全基于传统软件工程架构的 SCI 论文写作辅助系统。<br>
+    <strong style="color:var(--cyan);">零 AI / 零 LLM 依赖</strong>——通过模板引擎、规则引擎与自动化排版管线，
+    让不具备学术背景的普通人也能写出符合 SCI 发表规范的完整论文。
   </p>
-  <div class="tags">
-    <span>🔬 零 AI 依赖</span>
-    <span>📝 引导式写作</span>
-    <span>📚 学术句型库</span>
-    <span>📄 LaTeX / PDF 自动排版</span>
-    <span>🐍 Python FastAPI</span>
-    <span>⚛️ React + TypeScript</span>
+  <div class="meta-line">
+    参赛者：<strong>yangxiwen123</strong> &nbsp;·&nbsp;
+    代码仓库：<a href="https://github.com/yangxiwen123/scipaper" target="_blank" style="color:var(--cyan);">github.com/yangxiwen123/scipaper</a>
   </div>
 
-  <div class="stats-bar">
-    <div class="stat"><div class="num">61</div><div class="label">源代码文件</div></div>
-    <div class="stat"><div class="num">6,904</div><div class="label">代码行数</div></div>
-    <div class="stat"><div class="num">8</div><div class="label">数据库表</div></div>
-    <div class="stat"><div class="num">18</div><div class="label">API 端点</div></div>
+  <div class="stats-row" style="max-width:800px;margin:40px auto;">
+    <div class="stat"><div class="num">62</div><div class="lbl">源代码文件</div></div>
+    <div class="stat"><div class="num">6,904</div><div class="lbl">总代码行数</div></div>
+    <div class="stat"><div class="num">8</div><div class="lbl">数据库表</div></div>
+    <div class="stat"><div class="num">18</div><div class="lbl">API 端点</div></div>
   </div>
-
-  <div class="scroll-hint">↓ 向下滚动了解详情</div>
 </section>
 
-<!-- ===== 问题与解决方案 ===== -->
-<div class="section">
-  <div class="section-title">🎯 要解决的问题</div>
-  <h2>普通人写 SCI 论文的三座大山</h2>
-  <p class="desc">传统 SCI 论文写作对非学术背景的人来说极其困难。我们的系统通过纯软件工程手段逐一攻克。</p>
+<!-- ===== 1. 问题分析 ===== -->
+<section id="problem">
+  <div class="container">
+    <div class="sec-tag">01 · 问题分析</div>
+    <h2>普通人写 SCI 论文的三座大山</h2>
+    <p class="desc-large">
+      学术论文写作被认为是"隐知识"最密集的人类活动之一。我们对 SCI 论文写作的困难做了系统分析，将其归纳为三个层级的问题，并针对每一层级设计了纯软件解决方案。
+    </p>
 
-  <div class="card-grid">
-    <div class="card">
-      <div class="card-icon">🧱</div>
-      <h4>结构壁垒：不知道每部分写什么</h4>
-      <p>6 步 Wizard 向导将 IMRaD 结构拆解为填空题和下拉选择。每个文本框旁有 [ ? ] 图标，说明该段落在 SCI 论文中的功能、推荐长度、示范句型。</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">🗣️</div>
-      <h4>语言壁垒：不会写"学术英语"</h4>
-      <p>内置 30 条精心编排的学术句型模板（基于 Manchester Phrasebank 分类体系），覆盖 Introduction / Methods / Results / Discussion / Conclusion 所有章节。按功能分类树浏览，一键插入，变量插槽填充。</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">📐</div>
-      <h4>排版壁垒：搞不定 LaTeX 和期刊格式</h4>
-      <p>结构化 JSON → Document AST → LaTeX / Word 自动编译管线。预置 IEEE、Elsevier、Springer、Nature 四种期刊模板，图表公式自动编号，5 种引文格式一键切换。</p>
-    </div>
-  </div>
-</div>
+    <div class="card-grid">
+      <div class="card">
+        <div class="icon">🧱</div>
+        <h4>结构层：IMRaD 结构的认知鸿沟</h4>
+        <p>
+          SCI 论文要求严格遵守 IMRaD（Introduction, Methods, Results, and Discussion）结构，但普通人不知道每一部分应该写什么、写多少、以什么逻辑组织。
+          例如：Introduction 需要完成"建立领域→识别缺口→陈述目的→提出假设"四步论证链条，
+          而 Discussion 需要完成"总结发现→对比文献→解释机制→承认局限→引申意义"五步推演。
+          <br><br>
+          <strong style="color:var(--cyan);">解决方案：</strong>6 步向导式表单将每步需完成的子任务拆解为填空题，每个输入框旁有上下文提示。
+        </p>
+      </div>
 
-<!-- ===== 工作流 ===== -->
-<div class="section">
-  <div class="section-title">🔄 核心用户工作流</div>
-  <h2>从零到论文，只需 6 步</h2>
-  <p class="desc">Wizard 向导式交互，每一步都有引导、校验和句型库辅助。</p>
+      <div class="card">
+        <div class="icon">🗣️</div>
+        <h4>语言层：学术英语的"方言壁垒"</h4>
+        <p>
+          学术英语有自己独特的措辞习惯和修辞范式——比如"a significant increase was observed"而非"we saw things go up"。
+          这需要长期浸淫学术环境才能习得。普通人不仅不知道某个句子该怎么写，甚至不知道"这个句子可以有哪些写法选项"。
+          <br><br>
+          <strong style="color:var(--purple);">解决方案：</strong>基于 Manchester Phrasebank 分类体系构建的句型模板库（30条核心模板），按写作功能和意图三维分类，用户通过下拉选择 + 变量填充即可生成地道学术表达。
+        </p>
+      </div>
 
-  <div class="flow">
-    <div class="flow-step">
-      <div class="step-num">1</div>
-      <div class="step-title">📋 Abstract</div>
-      <div class="step-sub">五要素结构化摘要</div>
-    </div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step">
-      <div class="step-num">2</div>
-      <div class="step-title">📖 Introduction</div>
-      <div class="step-sub">建立领域 → 识别缺口 → 陈述目的</div>
-    </div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step">
-      <div class="step-num">3</div>
-      <div class="step-title">🔬 Methods</div>
-      <div class="step-sub">实验设计 / 参与者 / 统计分析</div>
-    </div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step">
-      <div class="step-num">4</div>
-      <div class="step-title">📊 Results</div>
-      <div class="step-sub">图表插入 + 统计结果报告</div>
-    </div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step">
-      <div class="step-num">5</div>
-      <div class="step-title">💬 Discussion</div>
-      <div class="step-sub">结果解读 + 文献对比 + 局限性</div>
-    </div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step">
-      <div class="step-num">6</div>
-      <div class="step-title">🏁 Conclusion</div>
-      <div class="step-sub">核心发现 + 贡献 + 未来方向</div>
-    </div>
-  </div>
-
-  <div style="text-align:center; margin-top:24px;">
-    <span class="badge cyan" style="font-size:13px;padding:6px 16px;">📚 全程可用 Phrasebank 句型库辅助</span>
-    <span class="badge purple" style="font-size:13px;padding:6px 16px;margin-left:8px;">✅ 每步完成后自动校验完整性</span>
-  </div>
-</div>
-
-<!-- ===== 句型库 ===== -->
-<div class="section" style="padding-top:0;">
-  <div class="section-title">📚 学术句型库 (Phrasebank)</div>
-  <h2>动态模板引擎，不是文本生成</h2>
-  <p class="desc">我们不依赖任何 AI 生成技术。每条句型都是手工编排的模板，用户通过插槽变量填充来完成学术表达。</p>
-
-  <div class="arch-diagram" style="background:var(--card2);">
-    <pre style="color:var(--text);">
-<span style="color:var(--text3)"># 句型模板存储（数据库 seed）</span>
-{
-  <span style="color:var(--cyan)">"section"</span>: <span style="color:var(--green)">"introduction"</span>,
-  <span style="color:var(--cyan)">"function_tag"</span>: <span style="color:var(--green)">"identifying_gap"</span>,
-  <span style="color:var(--cyan)">"template_text"</span>: <span style="color:var(--green)">"Despite considerable research on <span style="color:var(--purple)">{existing_work}</span>,
-                        <span style="color:var(--purple)">{gap_description}</span> remains poorly understood."</span>,
-  <span style="color:var(--cyan)">"slots"</span>: {
-    <span style="color:var(--cyan)">"existing_work"</span>: {<span style="color:var(--cyan)">"type"</span>: <span style="color:var(--green)">"text"</span>, <span style="color:var(--cyan)">"hint"</span>: <span style="color:var(--green)">"what has been studied"</span>},
-    <span style="color:var(--cyan)">"gap_description"</span>: {<span style="color:var(--cyan)">"type"</span>: <span style="color:var(--green)">"text"</span>, <span style="color:var(--cyan)">"hint"</span>: <span style="color:var(--green)">"what we don't know yet"</span>}
-  },
-  <span style="color:var(--cyan)">"example_filled"</span>: <span style="color:var(--green)">"Despite considerable research on antibiotic resistance mechanisms,<br>                        the role of environmental factors in resistance gene transfer remains poorly understood."</span>
-}
-
-<span style="color:var(--text3)"># 用户填充后 → 编译为论文段落</span>
-</pre>
-  </div>
-
-  <div class="card-grid" style="margin-top:24px;">
-    <div class="card">
-      <div class="card-icon">🌳</div>
-      <h4>分类树浏览</h4>
-      <p>按章节 → 功能标签 → 子功能 三级分类，如 Introduction → Identifying a Gap → Highlighting Problem</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">🔍</div>
-      <h4>搜索 + 筛选</h4>
-      <p>全文搜索句型模板文本；按难度等级（Basic / Intermediate / Advanced）筛选</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">🔌</div>
-      <h4>插槽变量填充</h4>
-      <p>模板中 {} 标记的变量在编辑器中渲染为可点击 Chip 组件，用户逐一填入，自动校验必填项</p>
-    </div>
-  </div>
-</div>
-
-<!-- ===== 技术架构 ===== -->
-<div class="section" style="padding-top:0;">
-  <div class="section-title">🏗️ 技术架构</div>
-  <h2>纯传统软件架构，零 AI 依赖</h2>
-  <p class="desc">模板引擎 + 规则引擎 + 自动化工作流。所有功能都是确定性逻辑，无任何 LLM 调用。</p>
-
-  <div class="arch-diagram">
-    <div class="arch-row">
-      <div class="arch-box cyan">
-        <div class="box-title">⚛️ React 18 + TypeScript</div>
-        <div class="box-sub">Ant Design 5 · Zustand</div>
+      <div class="card">
+        <div class="icon">📐</div>
+        <h4>排版层：LaTeX 的技术壁垒与期刊适配</h4>
+        <p>
+          学术出版事实标准是 LaTeX，但非计算机背景的人学习 LaTeX 的成本极高。不同期刊（IEEE、Elsevier、Springer、Nature）有不同的模板、字体、行距、引文格式要求，
+          手动切换几乎不可能。图表编号、交叉引用、参考文献格式如果手动维护，极易出错。
+          <br><br>
+          <strong style="color:var(--green);">解决方案：</strong>JSON → Document AST → LaTeX/Word 双编译管线，内置 4 种 SCI 期刊模板，图表公式自动编号，5 种引文格式一键切换。
+        </p>
       </div>
     </div>
-    <div class="arch-row"><div style="color:var(--text3);font-size:18px;">REST API (JSON)</div></div>
-    <div class="arch-row">
-      <div class="arch-box green">
-        <div class="box-title">🐍 Python FastAPI</div>
-        <div class="box-sub">异步后端 · 自动 OpenAPI 文档</div>
-      </div>
-    </div>
-    <div class="arch-row">
-      <div class="arch-box purple">
-        <div class="box-title">🗄️ PostgreSQL 15</div>
-        <div class="box-sub">JSONB 结构化论文内容</div>
-      </div>
-      <div class="arch-box purple">
-        <div class="box-title">⚡ Redis 7</div>
-        <div class="box-sub">缓存 · 任务队列</div>
-      </div>
-      <div class="arch-box purple">
-        <div class="box-title">📦 Celery</div>
-        <div class="box-sub">异步 PDF 编译</div>
-      </div>
-    </div>
-    <div class="arch-row"><div style="color:var(--text3);font-size:18px;">导出管线</div></div>
-    <div class="arch-row">
-      <div class="arch-box cyan">
-        <div class="box-title">📄 LaTeX (xelatex)</div>
-        <div class="box-sub">→ PDF</div>
-      </div>
-      <div class="arch-box cyan">
-        <div class="box-title">📝 python-docx</div>
-        <div class="box-sub">→ .docx</div>
-      </div>
-      <div class="arch-box cyan">
-        <div class="box-title">🔄 Pandoc</div>
-        <div class="box-sub">格式互转</div>
-      </div>
-    </div>
-  </div>
 
-  <div class="card-grid" style="margin-top:24px;">
-    <div class="card">
-      <div class="card-icon">📐</div>
-      <h4>Document AST 中间表示</h4>
-      <p>论文数据在数据库中以结构化 JSON 存储，导出时先编译为统一的 Document AST（段落、引用、图表、公式的文档树），再分别编译到 LaTeX 或 Word。</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">🔢</div>
-      <h4>自动编号引擎</h4>
-      <p>NumberingEngine 为全文的 Figures、Tables、Equations 自动分配连续编号（支持全文顺序编号和按章节编号两种模式），导出时自动生成交叉引用链接。</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">✅</div>
-      <h4>三层校验体系</h4>
-      <p><strong>字段级</strong>（onBlur 即时反馈）→ <strong>段落级</strong>（Next 步骤时完整性检查）→ <strong>全文级</strong>（导出前图表引用、参考文献、字数占比检查）。12 条内置规则。</p>
-    </div>
-  </div>
-</div>
-
-<!-- ===== 功能清单 ===== -->
-<div class="section" style="padding-top:0;">
-  <div class="section-title">📋 完整功能清单</div>
-  <h2>项目交付物一览</h2>
-
-  <table class="feature-table">
-    <thead>
-      <tr><th>模块</th><th>文件</th><th>核心能力</th><th>标签</th></tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td style="font-weight:600">学术句型库</td>
-        <td><code>phrasebank_seed.py</code></td>
-        <td>30 条结构化句型模板，覆盖 5 个 SCI 章节，15+ 功能标签</td>
-        <td><span class="badge purple">模板引擎</span></td>
-      </tr>
-      <tr>
-        <td style="font-weight:600">向导式 UI</td>
-        <td><code>PaperWizard.tsx</code></td>
-        <td>6 步 Ant Design Stepper，进度追踪，实时字数统计</td>
-        <td><span class="badge cyan">React</span></td>
-      </tr>
-      <tr>
-        <td style="font-weight:600">句型浏览器</td>
-        <td><code>PhraseBrowser.tsx</code></td>
-        <td>三级分类树，搜索筛选，一键插入，插槽高亮渲染</td>
-        <td><span class="badge cyan">React</span></td>
-      </tr>
-      <tr>
-        <td style="font-weight:600">LaTeX 编译器</td>
-        <td><code>latex_compiler.py</code></td>
-        <td>DocumentAST → .tex，支持 IEEE/Elsevier/Springer/Nature 四种模板</td>
-        <td><span class="badge green">引擎</span></td>
-      </tr>
-      <tr>
-        <td style="font-weight:600">Word 编译器</td>
-        <td><code>docx_compiler.py</code></td>
-        <td>python-docx 生成 .docx，双倍行距，Times New Roman，交叉引用</td>
-        <td><span class="badge green">引擎</span></td>
-      </tr>
-      <tr>
-        <td style="font-weight:600">引文格式化</td>
-        <td><code>citation_formatter.py</code></td>
-        <td>5 种引文格式（IEEE/APA/Vancouver/Nature/MLA），作者名自动规范化</td>
-        <td><span class="badge green">引擎</span></td>
-      </tr>
-      <tr>
-        <td style="font-weight:600">自动编号</td>
-        <td><code>numbering_engine.py</code></td>
-        <td>图表/公式顺序编号 + 按章节编号，Fig./Table./Eq. 自动标注</td>
-        <td><span class="badge green">引擎</span></td>
-      </tr>
-      <tr>
-        <td style="font-weight:600">模板装配器</td>
-        <td><code>phrase_assembler.py</code></td>
-        <td>{slot} 变量替换，类型校验（文本/数字/选择），缺失检查</td>
-        <td><span class="badge purple">模板引擎</span></td>
-      </tr>
-      <tr>
-        <td style="font-weight:600">文献导入器</td>
-        <td><code>reference_importer.py</code></td>
-        <td>手写 BibTeX + RIS 双格式解析器，作者名智能拆分，格式自动检测</td>
-        <td><span class="badge orange">解析器</span></td>
-      </tr>
-      <tr>
-        <td style="font-weight:600">校验引擎</td>
-        <td><code>validation_service.py</code></td>
-        <td>12 条规则，字段/段落/全文三级触发，error/warning/info 分级</td>
-        <td><span class="badge orange">校验</span></td>
-      </tr>
-      <tr>
-        <td style="font-weight:600">导出编排</td>
-        <td><code>export_service.py</code></td>
-        <td>DB → AST → LaTeX/Word 全管线，自动编号注入，引文格式化</td>
-        <td><span class="badge green">服务</span></td>
-      </tr>
-      <tr>
-        <td style="font-weight:600">期刊模板</td>
-        <td><code>journal_templates_seed.py</code></td>
-        <td>4 种 SCI 期刊模板，含格式规则/字数限制/图表规范/引文要求 JSON</td>
-        <td><span class="badge purple">配置</span></td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-<!-- ===== 数据库设计 ===== -->
-<div class="section" style="padding-top:0;">
-  <div class="section-title">🗄️ 数据库设计</div>
-  <h2>8 张核心表，支撑完整论文数据模型</h2>
-
-  <table class="feature-table">
-    <thead>
-      <tr><th>表名</th><th>核心字段</th><th>说明</th></tr>
-    </thead>
-    <tbody>
-      <tr><td><code>papers</code></td><td>title, status, journal_target, citation_style</td><td>论文主表，记录状态和期刊目标</td></tr>
-      <tr><td><code>paper_sections</code></td><td>content_json (JSONB), plain_text, word_count</td><td>章节内容，JSONB 存储结构化段落/引用/图表引用</td></tr>
-      <tr><td><code>phrasebank</code></td><td>template_text, slots (JSONB), function_tag</td><td>句型模板库，插槽定义 + 示例</td></tr>
-      <tr><td><code>reference_entries</code></td><td>authors (JSONB), title, doi, raw_bibtex, cite_key</td><td>参考文献，支持 BibTeX/RIS 原始数据留存</td></tr>
-      <tr><td><code>paper_citations</code></td><td>reference_id, citation_order, citation_context</td><td>论文-文献交叉引用关联表</td></tr>
-      <tr><td><code>paper_figures</code></td><td>figure_number, caption, file_path, label</td><td>图表管理，自动编号 + LaTeX label</td></tr>
-      <tr><td><code>paper_tables</code></td><td>table_number, caption, table_data (JSONB)</td><td>表格数据，结构化 headers + rows</td></tr>
-      <tr><td><code>paper_equations</code></td><td>equation_number, latex_code, label</td><td>公式管理，LaTeX 原生存储</td></tr>
-    </tbody>
-  </table>
-</div>
-
-<!-- ===== 启动方式 ===== -->
-<div class="section" style="padding-top:0;">
-  <div class="section-title">🚀 一键启动</div>
-  <h2>Demo 运行方式</h2>
-
-  <div class="card-grid">
-    <div class="card">
-      <div class="card-icon">🐳</div>
-      <h4>Docker 全栈启动</h4>
-      <p style="font-family:monospace;color:var(--green);font-size:13px;">
-        cd D:\CodeProject\scipaper<br>
-        docker-compose up -d<br>
-        docker-compose exec backend python -m seed_data.run_seed
+    <div class="author-note">
+      <h4 style="color:var(--cyan);">🔑 设计哲学</h4>
+      <p style="color:var(--text2);font-size:15px;line-height:2;">
+        本项目的核心理念是：<strong>不替代用户的思考，而是提供结构和选项</strong>。我们不使用任何文本生成技术——用户始终是自己论文的作者。
+        系统提供的是：（1）结构性的引导（每一步应该写什么）、（2）语言上的选项（学术句子可以怎么写）、
+        （3）格式上的自动化（写完后的排版由系统完成）。这三层分工明确，边界清晰。
       </p>
-      <p>启动 PostgreSQL + Redis + LanguageTool + Backend + Celery，然后初始化种子数据。API 文档自动生成在 <code>http://localhost:8000/docs</code></p>
     </div>
-    <div class="card">
-      <div class="card-icon">💻</div>
-      <h4>本地开发模式</h4>
-      <p style="font-family:monospace;color:var(--green);font-size:13px;">
-        cd backend && uvicorn app.main:app --reload<br>
-        cd frontend && npm install && npm run dev
+  </div>
+</section>
+
+<!-- ===== 2. 用户工作流 ===== -->
+<section id="workflow" style="background:rgba(17,24,39,0.3);">
+  <div class="container">
+    <div class="sec-tag">02 · 用户工作流</div>
+    <h2>6 步 Wizard 向导：从零到论文</h2>
+    <p class="desc">向导式 UI 将 IMRaD 结构拆解为顺序步骤，每步都有结构化引导、句型库支持和自动校验。</p>
+
+    <div class="flow" style="margin-top:40px;">
+      <div class="flow-step">
+        <div class="sn">1</div>
+        <div class="st">📋 Abstract</div>
+        <div class="ss">五要素结构<br>150-300 词限制</div>
+      </div>
+      <div class="flow-arr">→</div>
+      <div class="flow-step">
+        <div class="sn">2</div>
+        <div class="st">📖 Introduction</div>
+        <div class="ss">领域建立→缺口识别<br>→研究目的</div>
+      </div>
+      <div class="flow-arr">→</div>
+      <div class="flow-step">
+        <div class="sn">3</div>
+        <div class="st">🔬 Methods</div>
+        <div class="ss">设计·参与者·流程<br>·统计分析</div>
+      </div>
+      <div class="flow-arr">→</div>
+      <div class="flow-step">
+        <div class="sn">4</div>
+        <div class="st">📊 Results</div>
+        <div class="ss">描述统计·推论统计<br>·图表插入</div>
+      </div>
+      <div class="flow-arr">→</div>
+      <div class="flow-step">
+        <div class="sn">5</div>
+        <div class="st">💬 Discussion</div>
+        <div class="ss">解读·对比文献<br>·局限性·意义</div>
+      </div>
+      <div class="flow-arr">→</div>
+      <div class="flow-step">
+        <div class="sn">6</div>
+        <div class="st">🏁 Conclusion</div>
+        <div class="ss">核心发现·贡献<br>·未来方向</div>
+      </div>
+    </div>
+
+    <div class="card-grid" style="margin-top:48px;">
+      <div class="card">
+        <div class="icon">💡</div>
+        <h4>上下文感知的帮助系统</h4>
+        <p>
+          每个文本框旁边有一个 <code>[?]</code> 图标，鼠标悬停时显示该段落在 SCI 论文中的<strong>功能说明、推荐长度、示范句型</strong>。
+          这不是简单的 tooltip——它根据当前章节动态加载不同的帮助文案。
+          Methods 部分会提示"请描述实验设计类型（如随机对照试验）"以及"充足到足以让其他研究者复现"的标准；
+          Discussion 部分则会提示"解释你的结果意味着什么，而非重复结果本身"，并提醒至少引用 3 篇他人文献进行对比。
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="icon">📚</div>
+        <h4>全程可用的句型浏览器</h4>
+        <p>
+          用户在任意章节编辑时，点击工具栏 <code>📚 Phrasebank</code> 按钮，
+          右侧弹出一个侧边抽屉。左侧是按功能意图组织的分类树（如 Introduction → Identifying a Gap → Highlighting Problem），右侧是符合条件的句型卡片列表。
+          每条句型用 <code style="color:var(--purple);">{紫色高亮}</code> 标记变量插槽，附带预填示例和来源说明。
+          点击 <code>[插入]</code> 按钮后，句型模板进入编辑器，插槽转换为可点击的 Chip 组件。
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="icon">✅</div>
+        <h4>步进式校验系统</h4>
+        <p>
+          用户点击 <code>[Next]</code> 进入下一步时，系统自动触发当前章节的完整性校验。
+          例如：Methods 缺少样本量字段 → 弹窗拦截，红色高亮缺漏项列表，并给出"在 Methods → 实验设计 → 样本量字段中填写"的精准引导。
+          用户可以选择"暂存并继续"（warning 级别）或必须修复（error 级别）才能前进。
+          导出前还会触发全文级校验——检查图表引用完整性、参考文献匹配度、章节字数占比合理性。
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 3. 学术句型库 ===== -->
+<section id="phrasebank">
+  <div class="container">
+    <div class="sec-tag">03 · 学术句型库 (Phrasebank)</div>
+    <h2>动态模板引擎——不是文本生成，而是结构化选项系统</h2>
+    <p class="desc">
+      我们拒绝使用任何 AI 文本生成。每一条句型都是由人类手工编排的学术写作模板，基于 Manchester Academic Phrasebank 的功能分类体系。
+      用户通过选择功能意图、填充变量插槽，来完成"地道 SCI 英语"的拼接。
+    </p>
+
+    <div class="two-col" style="margin-top:32px;">
+      <div class="big-card" style="margin:0;">
+        <h4 style="color:var(--cyan);margin-bottom:16px;">模板存储格式（数据库 JSONB）</h4>
+        <div class="json-view">
+<span class="brace">{</span>
+  <span class="key">"section"</span>: <span class="val-str">"introduction"</span>,
+  <span class="key">"function_tag"</span>: <span class="val-str">"identifying_gap"</span>,
+  <span class="key">"sub_function"</span>: <span class="val-str">"highlighting_problem"</span>,
+  <span class="key">"template_text"</span>:
+    <span class="val-str">"Despite considerable research on {existing_work},
+    {gap_description} remains poorly understood."</span>,
+  <span class="key">"slots"</span>: <span class="brace">{</span>
+    <span class="key">"existing_work"</span>: <span class="brace">{</span>
+      <span class="key">"type"</span>: <span class="val-str">"text"</span>,
+      <span class="key">"required"</span>: <span class="val-bool">true</span>,
+      <span class="key">"hint"</span>: <span class="val-str">"what has been studied"</span>
+    <span class="brace">}</span>,
+    <span class="key">"gap_description"</span>: <span class="brace">{</span>
+      <span class="key">"type"</span>: <span class="val-str">"text"</span>,
+      <span class="key">"required"</span>: <span class="val-bool">true</span>,
+      <span class="key">"hint"</span>: <span class="val-str">"what we still don't know"</span>
+    <span class="brace">}</span>
+  <span class="brace">}</span>,
+  <span class="key">"example_filled"</span>:
+    <span class="val-str">"Despite considerable research on antibiotic
+    resistance mechanisms, the role of environmental factors
+    in resistance gene transfer remains poorly understood."</span>,
+  <span class="key">"academic_level"</span>: <span class="val-str">"intermediate"</span>,
+  <span class="key">"source"</span>: <span class="val-str">"Manchester Phrasebank"</span>
+<span class="brace">}</span>
+        </div>
+      </div>
+
+      <div class="big-card" style="margin:0;">
+        <h4 style="color:var(--purple);margin-bottom:16px;">模板装配引擎核心实现</h4>
+        <div class="code-block"><pre><span class="cmt"># phrase_assembler.py — 核心类</span>
+<span class="kw">class</span> <span class="type">PhraseAssembler</span>:
+    <span class="kw">SLOT_PATTERN</span> = re.compile(<span class="str">r"\{(\w+)\}"</span>)
+
+    <span class="kw">@classmethod</span>
+    <span class="kw">def</span> <span class="fn">fill</span>(cls, template, slots_config, user_values, validate=True):
+        <span class="cmt"># 1. 校验阶段：检查必填插槽 & 类型匹配</span>
+        <span class="kw">if</span> validate:
+            cls._validate(template, slots_config, user_values)
+        <span class="cmt"># 2. 替换阶段：逐一替换 {slot} 占位符</span>
+        result = template
+        <span class="kw">for</span> slot_name <span class="kw">in</span> cls.extract_slots(template):
+            value = user_values.get(slot_name, <span class="str">""</span>)
+            result = result.replace(
+                <span class="str">f"<span class="brace">{</span>{slot_name}<span class="brace">}</span>"</span>, str(value))
+        <span class="kw">return</span> result
+
+    <span class="kw">@classmethod</span>
+    <span class="kw">def</span> <span class="fn">_validate</span>(cls, template, slots_config, user_values):
+        <span class="cmt"># 类型校验：number 必须可转为数字</span>
+        <span class="kw">if</span> slot_def[<span class="str">"type"</span>] == <span class="str">"number"</span>:
+            float(str(value))  <span class="cmt"># 失败则抛 SlotValidationError</span>
+        <span class="cmt"># 枚举校验：select 必须为预设选项</span>
+        <span class="kw">elif</span> slot_def[<span class="str">"type"</span>] == <span class="str">"select"</span>:
+            <span class="kw">if</span> value <span class="kw">not in</span> slot_def[<span class="str">"options"</span>]:
+                <span class="kw">raise</span> SlotValidationError(...)</pre></div>
+      </div>
+    </div>
+
+    <div class="card-grid" style="margin-top:32px;">
+      <div class="card">
+        <div class="icon">🌳</div>
+        <h4>三级分类树导航</h4>
+        <p>
+          句型库左侧面板以 Ant Design Tree 组件渲染三级分类树：<strong>章节</strong>（Introduction/Methods/Results/Discussion/Conclusion）
+          → <strong>功能标签</strong>（如 establishing_importance, identifying_gap, describing_trends, comparing_literature）
+          → <strong>子功能</strong>（如 claiming_centrality, contradictory_evidence, significant_result）。
+          每个节点旁显示该分类下的句型数量，帮助用户快速定位所需表达。
+        </p>
+      </div>
+      <div class="card">
+        <div class="icon">🔍</div>
+        <h4>全文搜索 + 难度过滤</h4>
+        <p>
+          SearchBar 支持对句型模板文本、功能标签、子功能名的 ILIKE 模糊匹配（后端 PostgreSQL）。
+          同时支持按 academic_level 过滤（Basic / Intermediate / Advanced），帮助不同水平的用户找到适合自己的表达难度。
+          高频常用句型按 usage_count 降序排列。
+        </p>
+      </div>
+      <div class="card">
+        <div class="icon">⭐</div>
+        <h4>收藏 & 使用统计</h4>
+        <p>
+          用户可以收藏常用句型（user_phrase_favorites 表），在收藏面板快速调用。
+          每次使用 `assemble_phrase` API 时，PhraseService 自动递增该句型的 usage_count 计数器，
+          为后续的热门推荐和用户习惯分析提供数据基础。
+        </p>
+      </div>
+    </div>
+
+    <div class="big-card" style="margin-top:32px;">
+      <h4 style="color:var(--cyan);margin-bottom:16px;">种子数据覆盖清单（30 条核心模板）</h4>
+      <table>
+        <thead>
+          <tr><th>章节</th><th>功能标签 (function_tag)</th><th>模板数</th><th>示例模板片段</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="badge b-cyan">Introduction</span></td><td>establishing_importance</td><td>3</td><td>"{topic} plays a crucial role in {field}..."</td></tr>
+          <tr><td><span class="badge b-cyan">Introduction</span></td><td>identifying_gap</td><td>4</td><td>"Despite considerable research on {existing_work}, {gap_description} remains poorly understood."</td></tr>
+          <tr><td><span class="badge b-cyan">Introduction</span></td><td>stating_purpose</td><td>3</td><td>"The aim of this {study_type} is to {action} {target} in order to {purpose}."</td></tr>
+          <tr><td><span class="badge b-cyan">Introduction</span></td><td>outlining_structure</td><td>1</td><td>"The remainder of this paper is structured as follows..."</td></tr>
+          <tr><td><span class="badge b-purple">Methods</span></td><td>describing_design</td><td>3</td><td>"A {design_type} design was employed to {purpose}..."</td></tr>
+          <tr><td><span class="badge b-purple">Methods</span></td><td>data_collection</td><td>1</td><td>"{variable} was assessed using the {instrument}, a validated {scale_type}..."</td></tr>
+          <tr><td><span class="badge b-purple">Methods</span></td><td>statistical_analysis</td><td>2</td><td>"All statistical analyses were conducted using {software} (version {version})..."</td></tr>
+          <tr><td><span class="badge b-green">Results</span></td><td>describing_findings</td><td>3</td><td>"A significant {direction} was observed between {group_a} (M={mean_a}) and {group_b}..."</td></tr>
+          <tr><td><span class="badge b-green">Results</span></td><td>referring_to_displays</td><td>2</td><td>"As shown in Figure {figure_number}, {description_of_pattern}."</td></tr>
+          <tr><td><span class="badge b-orange">Discussion</span></td><td>interpreting_results</td><td>2</td><td>"These findings are consistent with our hypothesis that {hypothesis_restatement}..."</td></tr>
+          <tr><td><span class="badge b-orange">Discussion</span></td><td>comparing_literature</td><td>2</td><td>"Our finding aligns with previous work by {author_citation}, who reported that..."</td></tr>
+          <tr><td><span class="badge b-orange">Discussion</span></td><td>acknowledging_limitations</td><td>2</td><td>"Several limitations should be noted. First, {limitation_a}. Second, {limitation_b}."</td></tr>
+          <tr><td><span class="badge b-orange">Discussion</span></td><td>implications</td><td>2</td><td>"From a practical standpoint, these results suggest that {recommendation}."</td></tr>
+          <tr><td><span class="badge b-purple">Conclusion</span></td><td>summarizing_findings</td><td>2</td><td>"In conclusion, this study demonstrates that {main_finding}."</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 4. 技术架构 ===== -->
+<section id="architecture" style="background:rgba(17,24,39,0.3);">
+  <div class="container">
+    <div class="sec-tag">04 · 技术架构</div>
+    <h2>全栈技术架构：前后端分离 + 微服务模块化</h2>
+    <p class="desc">Python(主) + Java(辅) 混合架构，Docker 容器化部署。所有功能模块之间通过明确的接口契约通信。</p>
+
+    <div class="big-card" style="margin-top:32px;">
+      <div class="arch-layer">
+        <div class="arch-box b-cyan"><div class="box-t">⚛️ React 18 + TypeScript</div><div class="box-s">Ant Design 5 · Zustand · TipTap</div></div>
+        <div class="arch-box b-cyan"><div class="box-t">📱 PWA Ready</div><div class="box-s">localStorage 持久化 · 离线草稿</div></div>
+      </div>
+      <div class="arch-arrow-row">↓ REST API (JSON) — Nginx 反向代理</div>
+      <div class="arch-layer">
+        <div class="arch-box b-green"><div class="box-t">📋 Papers API</div><div class="box-s">CRUD + 章节管理</div></div>
+        <div class="arch-box b-green"><div class="box-t">📚 Phrasebank API</div><div class="box-s">搜索 · 装配 · 收藏</div></div>
+        <div class="arch-box b-green"><div class="box-t">📖 References API</div><div class="box-s">BibTeX/RIS 导入</div></div>
+        <div class="arch-box b-green"><div class="box-t">📄 Export API</div><div class="box-s">校验 · 编译 · 下载</div></div>
+      </div>
+      <div class="arch-arrow-row">↓ Service Layer</div>
+      <div class="arch-layer">
+        <div class="arch-box b-purple"><div class="box-t">PhraseService</div><div class="box-s">句型搜索/装配/统计</div></div>
+        <div class="arch-box b-purple"><div class="box-t">ExportService</div><div class="box-s">导出编排</div></div>
+        <div class="arch-box b-purple"><div class="box-t">ValidationService</div><div class="box-s">规则引擎</div></div>
+        <div class="arch-box b-purple"><div class="box-t">ReferenceImporter</div><div class="box-s">手写解析器</div></div>
+      </div>
+      <div class="arch-arrow-row">↓ Engine Layer</div>
+      <div class="arch-layer">
+        <div class="arch-box b-orange"><div class="box-t">🔧 LaTeXCompiler</div><div class="box-s">AST → .tex</div></div>
+        <div class="arch-box b-orange"><div class="box-t">🔧 DocxCompiler</div><div class="box-s">AST → .docx</div></div>
+        <div class="arch-box b-orange"><div class="box-t">🔧 NumberingEngine</div><div class="box-s">图表/公式编号</div></div>
+        <div class="arch-box b-orange"><div class="box-t">🔧 CitationFormatter</div><div class="box-s">5 种引文格式</div></div>
+        <div class="arch-box b-orange"><div class="box-t">🔧 PhraseAssembler</div><div class="box-s">模板变量替换</div></div>
+      </div>
+      <div class="arch-arrow-row">↓ Data Layer</div>
+      <div class="arch-layer">
+        <div class="arch-box"><div class="box-t">🗄️ PostgreSQL 15</div><div class="box-s">JSONB · 全文索引</div></div>
+        <div class="arch-box"><div class="box-t">⚡ Redis 7</div><div class="box-s">缓存 · Celery Broker</div></div>
+        <div class="arch-box"><div class="box-t">📦 Celery</div><div class="box-s">异步 PDF 编译</div></div>
+        <div class="arch-box"><div class="box-t">🐳 Docker</div><div class="box-s">容器化部署</div></div>
+      </div>
+    </div>
+
+    <div class="two-col" style="margin-top:24px;">
+      <div class="card">
+        <h4>Python FastAPI（主后端）</h4>
+        <p>
+          承担 95% 的后端逻辑：论文 CRUD、句型库搜索与装配、文献解析导入、校验规则执行、导出管线编排。
+          选择 Python 的原因：<br>
+          (1) 字符串处理 / Jinja2 模板引擎 / python-docx 生态成熟，文本密集型操作开发效率极高；<br>
+          (2) SQLAlchemy 2.0 async 支持与 PostgreSQL JSONB 完美配合，适合存储结构化论文内容；<br>
+          (3) FastAPI 自动生成 OpenAPI 文档，前后端协作零摩擦。
+        </p>
+      </div>
+      <div class="card">
+        <h4>React 18 + TypeScript（前端）</h4>
+        <p>
+          采用 Ant Design 5 的 Steps、Drawer、Tree、Card 等组件快速搭建 Wizard UI。
+          状态管理使用 Zustand（而非 Redux）——项目状态树简单（单个论文 + 若干章节），
+          不需要 Redux 的样板代码开销。API 调用层统一封装在 <code>src/api/client.ts</code>，
+          所有请求类型定义通过 TypeScript interface 与后端 Pydantic Schema 对齐。
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 5. 核心引擎 ===== -->
+<section id="engines">
+  <div class="container">
+    <div class="sec-tag">05 · 核心引擎详解</div>
+    <h2>Document AST：整个系统的架构基石</h2>
+    <p class="desc">
+      这是本项目最具创新性的架构设计。我们定义了一个<strong>文档中间表示（Intermediate Representation）</strong>，
+      将所有论文内容从数据库的 JSON 格式解耦为统一的 AST 树，使得新增一种导出格式只需编写一个新的 Compiler。
+    </p>
+
+    <div class="pipeline" style="margin:32px 0;">
+      <div class="pipeline-box"><div class="p-title">🗄️ 数据库 JSONB</div><div class="p-sub">paper_sections<br>content_json</div></div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-box highlight"><div class="p-title">🌳 Document AST</div><div class="p-sub">Section→Paragraph<br>→Run 树结构</div></div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-box"><div class="p-title">📄 LaTeXCompiler</div><div class="p-sub">→ .tex → xelatex → PDF</div></div>
+      <div class="pipeline-arrow">+</div>
+      <div class="pipeline-box"><div class="p-title">📝 DocxCompiler</div><div class="p-sub">→ python-docx → .docx</div></div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <h3 style="margin-top:0;">AST 节点类型体系</h3>
+        <table>
+          <thead><tr><th>节点类型</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td><code>DocumentAST</code></td><td>根节点，包含全文所有元素</td></tr>
+            <tr><td><code>Section</code></td><td>章节节点，含 heading、level、Label</td></tr>
+            <tr><td><code>Paragraph</code></td><td>段落节点，包含 Run 序列</td></tr>
+            <tr><td><code>TextRun</code></td><td>文本运行（含 bold/italic/sub/sup）</td></tr>
+            <tr><td><code>CitationRun</code></td><td>内联引用，持有 cite_key 列表</td></tr>
+            <tr><td><code>FigureRef</code></td><td>图表交叉引用锚点</td></tr>
+            <tr><td><code>FigureElement</code></td><td>图片实体（编号、标题、路径）</td></tr>
+            <tr><td><code>TableElement</code></td><td>表格实体（编号、表头、数据行）</td></tr>
+            <tr><td><code>EquationElement</code></td><td>公式实体（编号、LaTeX 源码）</td></tr>
+            <tr><td><code>ReferenceElement</code></td><td>参考文献实体（格式化文本）</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <h3 style="margin-top:0;">编译流程（以 LaTeX 为例）</h3>
+        <div class="code-block"><pre><span class="cmt"># latex_compiler.py</span>
+<span class="kw">def</span> <span class="fn">compile_to_tex</span>(self, ast: DocumentAST) -> str:
+    parts = []
+    parts.append(self._generate_preamble(ast))   <span class="cmt"># 导言区</span>
+    parts.append(<span class="str">r"\begin{document}"</span>)
+    parts.append(self._generate_title_block(ast)) <span class="cmt"># 标题/作者</span>
+    <span class="kw">if</span> ast.abstract:
+        parts.append(self._generate_abstract(ast.abstract))
+    <span class="kw">for</span> section <span class="kw">in</span> ast.sections:
+        parts.append(self._generate_section(section))
+    <span class="kw">for</span> fig <span class="kw">in</span> ast.figures:
+        parts.append(self._generate_figure(fig))
+    <span class="kw">for</span> tbl <span class="kw">in</span> ast.tables:
+        parts.append(self._generate_table(tbl))
+    <span class="kw">for</span> eq <span class="kw">in</span> ast.equations:
+        parts.append(self._generate_equation(eq))
+    parts.append(self._generate_bibliography(ast))
+    parts.append(<span class="str">r"\end{document}"</span>)
+    <span class="kw">return</span> <span class="str">"\n"</span>.join(parts)</pre></div>
+      </div>
+    </div>
+
+    <div class="card-grid" style="margin-top:32px;">
+      <div class="card">
+        <div class="icon">📐</div>
+        <h4>LaTeX 特殊字符自动转义</h4>
+        <p>
+          <code>LATEX_ESCAPE_MAP</code> 维护了 10 个特殊字符的转义映射：<code>& → \&</code>、<code>% → \%</code>、<code>$ → \$</code>、
+          <code>_ → \_</code>、<code>{ → \{</code>、<code>~ → \textasciitilde{}</code> 等。用户输入完全不需关心 LaTeX 语法，编译器自动处理文本安全。
+        </p>
+      </div>
+      <div class="card">
+        <div class="icon">🔢</div>
+        <h4>自动编号引擎</h4>
+        <p>
+          <code>NumberingEngine</code> 支持两种编号模式：<br>
+          <strong>Sequential</strong>（Fig. 1, Fig. 2, Table 1, Eq. 1...全文连续编号）和 <strong>Chapter-based</strong>（Fig. 2.1, Fig. 2.2...按章节编号）。
+          在导出前，<code>assign_numbers()</code> 遍历所有图表公式元素，按章节顺序排序后分配编号，
+          <code>generate_labels()</code> 再生成 Fig. 1 / Table 2 等显示标签。
+        </p>
+      </div>
+      <div class="card">
+        <div class="icon">📝</div>
+        <h4>Word 编译器（python-docx）</h4>
+        <p>
+          <code>DocxCompiler</code> 支持完整的格式规则配置：字体族（Times New Roman）、字号（10/11/12pt）、行距（单倍/1.5倍/双倍）、页边距（cm/in）、标题对齐方式。
+          交叉引用在 Word 中转换为 <code>[1, 2, 3]</code> 格式的数字引用标记，
+          图表插入使用 <code>add_picture()</code> 和 <code>add_table()</code> API。
+        </p>
+      </div>
+    </div>
+
+    <h3>引文格式化引擎：5 种规范风格</h3>
+    <p class="desc">CitationFormatter 用纯 Python 实现了 IEEE、APA 7th、Vancouver、Nature、MLA 9th 五种主流引文格式。</p>
+
+    <div class="big-card" style="margin-top:16px;">
+      <table>
+        <thead>
+          <tr><th>风格</th><th>正文引用格式</th><th>参考文献输出格式</th><th>作者名规范</th><th>典型期刊</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge b-cyan">IEEE</span></td>
+            <td><code>[1], [2,3]</code> 方括号顺序编号</td>
+            <td>[1] J. K. Author, "Title," <i>Journal</i>, vol. X, pp. XX, Year.</td>
+            <td>J. K. Author（缩写+姓）</td>
+            <td>IEEE Trans., 计算机/电子工程类</td>
+          </tr>
+          <tr>
+            <td><span class="badge b-green">APA 7th</span></td>
+            <td><code>(Author, 2024)</code> 作者-年份</td>
+            <td>Author, A. A. (Year). Title. <i>Journal</i>, <i>Vol</i>(Iss), pp.</td>
+            <td>Author, A. A.（姓, 缩写.）</td>
+            <td>Elsevier, 心理学/教育学类</td>
+          </tr>
+          <tr>
+            <td><span class="badge b-purple">Vancouver</span></td>
+            <td><code>[1]</code> 或上标<sup>1</sup></td>
+            <td>1. Author AB. Title. <i>Journal</i>. Year;Vol(Iss):Pages.</td>
+            <td>Author AB（姓+无点缩写）</td>
+            <td>Springer, 生物医学类</td>
+          </tr>
+          <tr>
+            <td><span class="badge b-orange">Nature</span></td>
+            <td><code><sup>1</sup></code> 上标顺序编号</td>
+            <td>Author, A. B. Title. <i>Journal</i> Vol, Pages (Year).</td>
+            <td>Author, A. B.（姓, 缩写.）</td>
+            <td>Nature 及其子刊</td>
+          </tr>
+          <tr>
+            <td><span class="badge b-red">MLA 9th</span></td>
+            <td><code>(Author pp)</code> 作者-页码</td>
+            <td>Author, First M. "Title." <i>Journal</i>, vol. X, Year, pp.</td>
+            <td>Author, First M.（姓, 名 缩写.）</td>
+            <td>人文学科期刊</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>校验引擎：声明式规则 + 三层触发</h3>
+    <p class="desc">12 条内置校验规则，覆盖 Methods / Results / Discussion / Abstract / Paper-level 五个维度。</p>
+
+    <div class="two-col" style="margin-top:16px;">
+      <div class="big-card" style="margin:0;">
+        <h4 style="color:var(--cyan);">规则定义示例</h4>
+        <div class="json-view">
+<span class="brace">{</span>
+  <span class="key">"rule_id"</span>: <span class="val-str">"methods_sample_size"</span>,
+  <span class="key">"section"</span>: <span class="val-str">"methods"</span>,
+  <span class="key">"trigger"</span>: <span class="val-str">"on_section_complete"</span>,
+  <span class="key">"check"</span>: <span class="val-str">"required_field"</span>,
+  <span class="key">"field"</span>: <span class="val-str">"sample_size"</span>,
+  <span class="key">"severity"</span>: <span class="val-str">"error"</span>,
+  <span class="key">"message"</span>: <span class="val-str">"请填写样本量（必须为正整数）"</span>,
+  <span class="key">"auto_fix_hint"</span>:
+    <span class="val-str">"在Methods → 参与者 → 样本量字段中填写"</span>
+<span class="brace">}</span>
+        </div>
+        <p style="color:var(--text3);font-size:13px;margin-top:16px;">
+          规则存储为 JSON 对象数组，可通过数据库扩展无需修改代码。每条规则有唯一的 rule_id、目标 section、触发时机 trigger、检查类型 check、严重级别 severity（error/warning/info）。
+        </p>
+      </div>
+      <div class="big-card" style="margin:0;">
+        <h4 style="color:var(--cyan);">三层校验体系</h4>
+        <table>
+          <thead><tr><th>层级</th><th>触发时机</th><th>检查内容</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge b-cyan">字段级</span></td><td>onBlur 失焦</td><td>数据类型、范围、格式</td></tr>
+            <tr><td><span class="badge b-orange">段落/章节级</span></td><td>Next 点击 / 章节完成</td><td>必填字段完整度、引用存在性、字数范围</td></tr>
+            <tr><td><span class="badge b-red">全文级</span></td><td>导出前</td><td>引用-文献匹配、章节字数占比、标题非空</td></tr>
+          </tbody>
+        </table>
+        <p style="color:var(--text3);font-size:13px;margin-top:16px;">
+          检查类型包括：required_field、required_fields、min_citations、word_count_range、citation_refs_match、figure_refs_exist、table_refs_exist、section_word_ratio。
+          每种检查类型对应 <code>_check_rule()</code> 中的一个分支逻辑。
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 6. 数据库设计 ===== -->
+<section id="database" style="background:rgba(17,24,39,0.3);">
+  <div class="container">
+    <div class="sec-tag">06 · 数据库设计</div>
+    <h2>8 张核心表，JSONB 结构化论文内容存储</h2>
+    <p class="desc">选择 PostgreSQL 而非 MongoDB 的原因是：论文数据本质是关系型（论文→章节→引用→文献），JSONB 用于结构化段落内容，同时保留关系型查询能力。</p>
+
+    <div class="big-card" style="margin-top:32px;">
+      <table>
+        <thead>
+          <tr><th>表名</th><th>核心字段</th><th>字段类型</th><th>职责</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td rowspan="2"><code>users</code></td>
+            <td>id, email, username, hashed_password</td>
+            <td>UUID, VARCHAR, BOOLEAN</td>
+            <td>用户认证（MVP 阶段预留）</td>
+          </tr>
+          <tr>
+            <td colspan="3" style="color:var(--text3);">→ has many papers, phrase_favorites</td>
+          </tr>
+
+          <tr>
+            <td rowspan="2"><code>papers</code></td>
+            <td>id, user_id, title, status, journal_target, citation_style</td>
+            <td>UUID, FK, VARCHAR(500), VARCHAR(50), VARCHAR(200), VARCHAR(20)</td>
+            <td>论文主表，记录期刊目标和引文风格</td>
+          </tr>
+          <tr>
+            <td colspan="3" style="color:var(--text3);">→ has many sections, figures, tables, equations, citations, references</td>
+          </tr>
+
+          <tr>
+            <td rowspan="2"><code>paper_sections</code></td>
+            <td>id, paper_id, section_name, <strong>content_json (JSONB)</strong>, plain_text, word_count, is_complete</td>
+            <td>UUID, FK, VARCHAR(50), JSONB, TEXT, INT, BOOLEAN</td>
+            <td>章节内容。JSONB 存储结构化段落数据，plain_text 用于语法检查</td>
+          </tr>
+          <tr>
+            <td colspan="3" style="color:var(--text3);">content_json 格式：{paragraphs: [{id, runs: [{type, text, ...}]}], phrases_used: [], figures_refs: [], table_refs: []}</td>
+          </tr>
+
+          <tr>
+            <td rowspan="2"><code>phrasebank</code></td>
+            <td>id, section, function_tag, template_text, <strong>slots (JSONB)</strong>, example_filled, academic_level, usage_count</td>
+            <td>UUID, VARCHAR(50), VARCHAR(100), TEXT, JSONB, TEXT, VARCHAR(20), INT</td>
+            <td>句型模板库。slots JSON 定义每个变量的类型/选项/提示</td>
+          </tr>
+          <tr>
+            <td colspan="3" style="color:var(--text3);">索引：(section, function_tag) 复合索引，支持按 writing function 快速检索</td>
+          </tr>
+
+          <tr>
+            <td rowspan="2"><code>reference_entries</code></td>
+            <td>id, paper_id, ref_type, title, <strong>authors (JSONB)</strong>, journal, year, doi, cite_key, raw_bibtex, raw_ris</td>
+            <td>UUID, FK, VARCHAR(20), VARCHAR(1000), JSONB, VARCHAR(500), INT, VARCHAR(500), TEXT, TEXT</td>
+            <td>参考文献。保留原始 BibTeX/RIS 数据，cite_key 唯一索引</td>
+          </tr>
+          <tr>
+            <td colspan="3" style="color:var(--text3);">authors 格式：[{"first": "J.", "last": "Smith", "affiliation": "MIT"}, ...]</td>
+          </tr>
+
+          <tr>
+            <td><code>paper_citations</code></td>
+            <td>paper_id, reference_id, section_name, citation_context, citation_order</td>
+            <td>FK×2, VARCHAR(50), TEXT, INT</td>
+            <td>论文-文献交叉引用关联。按 citation_order 排序即正文引用顺序</td>
+          </tr>
+
+          <tr>
+            <td><code>paper_figures</code></td>
+            <td>paper_id, figure_number, caption, file_path, section_name, label, dpi</td>
+            <td>FK, INT, TEXT, VARCHAR(1000), VARCHAR(50), VARCHAR(200), INT</td>
+            <td>图表管理。label 字段用于 LaTeX \label{} 交叉引用</td>
+          </tr>
+
+          <tr>
+            <td><code>paper_tables</code></td>
+            <td>paper_id, table_number, caption, <strong>table_data (JSONB)</strong>, section_name, label</td>
+            <td>FK, INT, TEXT, JSONB, VARCHAR(50), VARCHAR(200)</td>
+            <td>表格管理。table_data 存 {headers: [...], rows: [[...], ...]}</td>
+          </tr>
+
+          <tr>
+            <td><code>paper_equations</code></td>
+            <td>paper_id, equation_number, latex_code, section_name, label</td>
+            <td>FK, INT, TEXT, VARCHAR(50), VARCHAR(200)</td>
+            <td>公式管理。latex_code 存 LaTeX 数学表达式</td>
+          </tr>
+
+          <tr>
+            <td><code>journal_templates</code></td>
+            <td>journal_name, publisher, latex_template, <strong>formatting_rules (JSONB)</strong>, word_limits (JSONB), figure_specs (JSONB), reference_specs (JSONB)</td>
+            <td>VARCHAR(200), VARCHAR(100), TEXT, JSONB, JSONB, JSONB, JSONB</td>
+            <td>期刊模板配置。所有格式规则以 JSON 存储，导出时动态读取</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 7. 文献管理 ===== -->
+<section>
+  <div class="container">
+    <div class="sec-tag">07 · 文献管理模块</div>
+    <h2>手写 BibTeX / RIS 双格式解析器</h2>
+    <p class="desc">我们选择手写解析器而非引入第三方依赖，是为了精确控制解析行为并提供更好的错误提示。</p>
+
+    <div class="two-col" style="margin-top:32px;">
+      <div class="card">
+        <h4>BibTeX 解析流程</h4>
+        <div class="code-block"><pre><span class="cmt"># reference_importer.py</span>
+<span class="kw">@classmethod</span>
+<span class="kw">def</span> <span class="fn">_parse_bibtex</span>(cls, raw: str) -> ImportResult:
+    <span class="cmt"># Step 1: 移除注释行 (以%开头)</span>
+    raw = re.sub(<span class="str">r"(?m)^%.*$"</span>, <span class="str">""</span>, raw)
+
+    <span class="cmt"># Step 2: 匹配 @type{key, fields...}</span>
+    <span class="kw">entry_pattern</span> = re.compile(
+        <span class="str">r"@(\w+)\s*\{\s*([^,]+)\s*,\s*(.+?)\}\s*$"</span>,
+        re.DOTALL | re.MULTILINE)
+
+    <span class="kw">for</span> match <span class="kw">in</span> entry_pattern.finditer(raw):
+        entry_type = match.group(1).lower()   <span class="cmt"># article|book|...</span>
+        cite_key   = match.group(2).strip()   <span class="cmt"># smith2024</span>
+        fields_str = match.group(3)            <span class="cmt"># title={...}, author={...}</span>
+
+        <span class="cmt"># Step 3: 解析 key = {value} 键值对</span>
+        fields = cls._parse_bibtex_fields(fields_str)
+        <span class="cmt"># Step 4: "Smith, John and Doe, Jane" → [{first, last}]</span>
+        authors = cls._parse_author_string(fields[<span class="str">"author"</span>])</pre></div>
+      </div>
+      <div class="card">
+        <h4>RIS 解析流程</h4>
+        <div class="code-block"><pre><span class="cmt"># reference_importer.py</span>
+<span class="kw">@classmethod</span>
+<span class="kw">def</span> <span class="fn">_parse_ris</span>(cls, raw: str) -> ImportResult:
+    <span class="kw">for</span> line <span class="kw">in</span> raw.splitlines():
+        <span class="cmt"># Step 1: 匹配双字母标签 "TY  - value"</span>
+        match = re.match(<span class="str">r"^(\w{2})\s{2}-\s+(.*)$"</span>, line)
+
+        tag, value = match.group(1), match.group(2).strip()
+
+        <span class="kw">if</span> tag == <span class="str">"ER"</span>:     <span class="cmt"># End of Record</span>
+            entries.append(cls._build_ris_entry(current))
+        <span class="kw">elif</span> tag == <span class="str">"TY"</span>:   <span class="cmt"># Start of new record</span>
+            current = {<span class="str">"type_tag"</span>: value}
+        <span class="kw">elif</span> tag <span class="kw">in</span> (<span class="str">"AU"</span>, <span class="str">"KW"</span>):
+            <span class="cmt"># Multi-value fields</span>
+            current[tag].append(value)
+
+<span class="cmt"># Step 2: 构建结构化引用对象</span>
+cls._build_ris_entry(raw):
+    <span class="kw">return</span> {
+        <span class="str">"ref_type"</span>: cls.RIS_TYPE_MAP[type_tag],
+        <span class="str">"title"</span>: raw[<span class="str">"TI"</span>],
+        <span class="str">"authors"</span>: cls._parse_author_string(
+            <span class="str">"; "</span>.join(raw[<span class="str">"AU"</span>])),
+        <span class="str">"journal"</span>: raw[<span class="str">"JO"</span>], ...
+    }</pre></div>
+      </div>
+    </div>
+
+    <div class="big-card" style="margin-top:24px;">
+      <h4 style="color:var(--cyan);">作者名解析：两种格式自动识别</h4>
+      <div class="code-block"><pre><span class="kw">@staticmethod</span>
+<span class="kw">def</span> <span class="fn">_parse_author_string</span>(author_str: str) -> List[Dict[str, str]]:
+    <span class="cmt"># Split on "and" (BibTeX convention)</span>
+    names = re.split(<span class="str">r"\s+and\s+"</span>, author_str, flags=re.IGNORECASE)
+
+    <span class="kw">for</span> name <span class="kw">in</span> names:
+        <span class="kw">if</span> <span class="str">","</span> <span class="kw">in</span> name:
+            <span class="cmt"># "Smith, John" → first="John", last="Smith"</span>
+            last, first = name.split(<span class="str">","</span>, 1)
+        <span class="kw">else</span>:
+            <span class="cmt"># "John Smith" → first="John", last="Smith"</span>
+            parts = name.split()
+            first, last = <span class="str">" "</span>.join(parts[:-1]), parts[-1]
+        authors.append({<span class="str">"first"</span>: first.strip(), <span class="str">"last"</span>: last.strip()})
+
+    <span class="kw">return</span> authors</pre></div>
+      <p style="color:var(--text3);font-size:13px;margin-top:12px;">
+        同时支持 <code>detect_format()</code> 自动识别输入是 BibTeX 还是 RIS 格式（根据是否包含 @ 开头条目或 TY 标签），用户无需手动指定。
       </p>
-      <p>后端需要本地 PostgreSQL 或修改 config.py 使用 SQLite。前端自动代理到 :8000</p>
     </div>
   </div>
-</div>
+</section>
 
-<!-- ===== 技术亮点 ===== -->
-<div class="section" style="padding-top:0;">
-  <div class="section-title">💡 技术创新点</div>
-  <h2>为什么这个项目有创造力</h2>
+<!-- ===== 8. MVP 开发计划 ===== -->
+<section style="background:rgba(17,24,39,0.3);">
+  <div class="container">
+    <div class="sec-tag">08 · MVP 开发计划</div>
+    <h2>4 周开发路线图</h2>
 
-  <div class="card-grid">
-    <div class="card">
-      <div class="card-icon">🔀</div>
-      <h4>Document AST 中间表示</h4>
-      <p>设计了一个完整的文档对象模型（AST），将论文内容表示为 Section → Paragraph → Run（TextRun / CitationRun / FigureRef / EquationRef）的树结构。所有导出格式共享同一编译管线，新增格式只需写一个 Compiler。</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">🧩</div>
-      <h4>插槽式模板引擎</h4>
-      <p>不是简单的字符串替换——每个插槽都有类型定义（text / number / select）、校验规则、选项列表和提示文本。模板装配器能验证用户填入的值是否符合类型预期，并返回缺失插槽列表。</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">📋</div>
-      <h4>声明式校验规则引擎</h4>
-      <p>12 条校验规则以 JSON 对象形式存储（可扩展为数据库行），支持 required_field / word_count_range / min_citations / citation_refs_match 等检查类型。三级触发机制（字段失焦 / 步骤完成 / 全文导出前）。</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">📐</div>
-      <h4>引用格式系统</h4>
-      <p>CitationFormatter 用纯 Python 实现了 5 种主流学术引文格式的规范输出——IEEE 的方括号编号、APA 的作者-年份括号、Vancouver 的上标编号、Nature 的紧凑格式、MLA 的作者-页码体例。每种格式都有独立的作者名规范化逻辑。</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">🖋️</div>
-      <h4>手写解析器</h4>
-      <p>ReferenceImporter 用正则表达式从零实现了 BibTeX 和 RIS 两种文献格式的解析器——而非依赖第三方库。支持 BibTeX 嵌套花括号值、RIS 双字母标签语法、作者名字段 "Smith, John" 和 "John Smith" 两种格式的自动识别。</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">🎨</div>
-      <h4>完整的 MVP 闭环</h4>
-      <p>从创建论文 → 分步填写 → 句型库辅助 → 文献导入 → 交叉引用 → 校验 → LaTeX/PDF/Word 导出，全链路跑通。60 个文件、6904 行代码，前后端分离，Docker 一键部署。</p>
+    <table>
+      <thead>
+        <tr><th>周次</th><th>优先级</th><th>任务</th><th>产出物</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge b-cyan">Week 1</span></td>
+          <td>P0</td>
+          <td>Wizard UI 框架 + Introduction 章节表单 + Phrasebank 数据库初始化</td>
+          <td>PaperWizard.tsx, SectionEditor.tsx, phrasebank_seed.py, 数据库建表</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-cyan">Week 2</span></td>
+          <td>P0</td>
+          <td>PhraseBrowser 前端交互 + JSON 结构化存储 + 校验规则引擎</td>
+          <td>PhraseBrowser.tsx, paperStore.ts, validation_service.py</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-purple">Week 3</span></td>
+          <td>P1</td>
+          <td>LaTeX 编译器 + IEEE 模板 + Document AST + PDF 自动生成</td>
+          <td>document_ast.py, latex_compiler.py, ieee/main.tex.j2, export_service.py</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-green">Week 4</span></td>
+          <td>P2</td>
+          <td>文献导入解析器 + 交叉引用管理 + 引文格式化 + 两端联调</td>
+          <td>reference_importer.py, citation_formatter.py, ExportPreview.tsx</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===== 9. 功能清单 ===== -->
+<section id="features">
+  <div class="container">
+    <div class="sec-tag">09 · 完整功能清单</div>
+    <h2>项目交付物与功能矩阵</h2>
+
+    <table>
+      <thead>
+        <tr><th style="width:8%;">模块</th><th style="width:18%;">文件</th><th style="width:45%;">核心能力</th><th style="width:8%;">行数</th><th style="width:10%;">标签</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Wizard UI</td>
+          <td><code>PaperWizard.tsx</code></td>
+          <td>6 步 Ant Design Stepper，进度环实时追踪，字数统计，校验/导出入口，步骤间依赖拦截</td>
+          <td>180</td>
+          <td><span class="badge b-cyan">React</span></td>
+        </tr>
+        <tr>
+          <td>章节编辑器</td>
+          <td><code>SectionEditor.tsx</code></td>
+          <td>多段落增删，富文本区域，引用标签展示，字数统计，句型插入入口</td>
+          <td>140</td>
+          <td><span class="badge b-cyan">React</span></td>
+        </tr>
+        <tr>
+          <td>句型浏览器</td>
+          <td><code>PhraseBrowser.tsx</code></td>
+          <td>Drawer 侧边栏，三级分类 Tree，搜索+筛选，插槽高亮渲染，一键插入编辑器</td>
+          <td>180</td>
+          <td><span class="badge b-cyan">React</span></td>
+        </tr>
+        <tr>
+          <td>导出面板</td>
+          <td><code>ExportPreview.tsx</code></td>
+          <td>格式选择（PDF/LaTeX/Word），模板切换（IEEE/Elsevier/Springer/Nature/Generic），编译日志展示，下载按钮</td>
+          <td>160</td>
+          <td><span class="badge b-cyan">React</span></td>
+        </tr>
+        <tr>
+          <td>状态管理</td>
+          <td><code>paperStore.ts</code></td>
+          <td>Zustand store：论文/章节/向导步骤/PhraseBrowser 全状态管理，API 调用封装，自动保存到 localStorage</td>
+          <td>170</td>
+          <td><span class="badge b-cyan">React</span></td>
+        </tr>
+        <tr>
+          <td>全局样式</td>
+          <td><code>index.css</code></td>
+          <td>暗黑科技感配色：霓虹色调、发光环、等宽字体、插槽高亮、进度条渐变、滚动条定制、Ant Design 主题覆盖</td>
+          <td>100</td>
+          <td><span class="badge b-cyan">CSS</span></td>
+        </tr>
+        <tr style="border-top:2px solid var(--border);">
+          <td>模板引擎</td>
+          <td><code>phrase_assembler.py</code></td>
+          <td>正则提取插槽变量，类型校验（text/number/select），枚举选项验证，缺失插槽列表返回，示例预览</td>
+          <td>155</td>
+          <td><span class="badge b-purple">引擎</span></td>
+        </tr>
+        <tr>
+          <td>Document AST</td>
+          <td><code>document_ast.py</code></td>
+          <td>12 种节点类型（dataclass），ASTBuilder 从数据库 JSON 构建文档树，Section→Paragraph→Run 三层结构</td>
+          <td>273</td>
+          <td><span class="badge b-purple">引擎</span></td>
+        </tr>
+        <tr>
+          <td>LaTeX 编译器</td>
+          <td><code>latex_compiler.py</code></td>
+          <td>4 种期刊模板 preamble，LaTeX 特殊字符转义（10 个映射），逐段编译（TextRun/CitationRun/FigureRef），xelatex 命令行调用，PDF 生成</td>
+          <td>330</td>
+          <td><span class="badge b-purple">引擎</span></td>
+        </tr>
+        <tr>
+          <td>Word 编译器</td>
+          <td><code>docx_compiler.py</code></td>
+          <td>python-docx 操作：字体/行距/页边距/标题格式配置，图片+表格插入，交叉引用数字映射，分章节格式化</td>
+          <td>220</td>
+          <td><span class="badge b-purple">引擎</span></td>
+        </tr>
+        <tr>
+          <td>编号引擎</td>
+          <td><code>numbering_engine.py</code></td>
+          <td>顺序/按章节双模式，element→number 映射，图/表/公式分计数器，renumber 全量重排</td>
+          <td>148</td>
+          <td><span class="badge b-purple">引擎</span></td>
+        </tr>
+        <tr>
+          <td>引文格式化</td>
+          <td><code>citation_formatter.py</code></td>
+          <td>5 种风格独立实现（IEEE/APA/Vancouver/Nature/MLA），每种包含完整的作者名规范化逻辑</td>
+          <td>319</td>
+          <td><span class="badge b-purple">引擎</span></td>
+        </tr>
+        <tr style="border-top:2px solid var(--border);">
+          <td>文献导入器</td>
+          <td><code>reference_importer.py</code></td>
+          <td>手写 BibTeX + RIS 双格式解析，正则匹配 + 键值对提取 + 作者名智能拆分 + 格式自动检测</td>
+          <td>290</td>
+          <td><span class="badge b-orange">解析器</span></td>
+        </tr>
+        <tr style="border-top:2px solid var(--border);">
+          <td>校验引擎</td>
+          <td><code>validation_service.py</code></td>
+          <td>12 条声明式规则，6 种检查类型（required_field / word_count_range / min_citations / citation_refs_match / figure_refs_exist / section_word_ratio），三级触发</td>
+          <td>372</td>
+          <td><span class="badge b-green">服务</span></td>
+        </tr>
+        <tr>
+          <td>导出编排</td>
+          <td><code>export_service.py</code></td>
+          <td>完整管线：引文格式化→自动编号→AST 构建→LaTeX/Word 编译，错误收集与回退</td>
+          <td>230</td>
+          <td><span class="badge b-green">服务</span></td>
+        </tr>
+        <tr>
+          <td>句型服务</td>
+          <td><code>phrase_service.py</code></td>
+          <td>SQLAlchemy 异步查询：分类树聚合、ILIKE 搜索、装配调用+计数递增、收藏管理</td>
+          <td>160</td>
+          <td><span class="badge b-green">服务</span></td>
+        </tr>
+        <tr style="border-top:2px solid var(--border);">
+          <td>种子数据</td>
+          <td><code>phrasebank_seed.py</code><br><code>journal_templates_seed.py</code></td>
+          <td>30 条句型模板（覆盖 5 章 14 功能标签）+ 4 个期刊完整格式化配置（字体/行距/边距/图表规范/引文要求）</td>
+          <td>260</td>
+          <td><span class="badge b-orange">数据</span></td>
+        </tr>
+        <tr style="border-top:2px solid var(--border);">
+          <td>LaTeX 模板</td>
+          <td><code>main.tex.j2</code> ×3</td>
+          <td>Jinja2 模板：IEEE（IEEEtran, 双栏）, Elsevier（elsarticle）, Generic（article, 双倍行距）</td>
+          <td>150</td>
+          <td><span class="badge b-purple">模板</span></td>
+        </tr>
+        <tr style="border-top:2px solid var(--border);">
+          <td>Docker</td>
+          <td><code>docker-compose.yml</code></td>
+          <td>5 服务编排：PostgreSQL 15 + Redis 7 + LanguageTool + Backend + Celery Worker，含健康检查和持久卷</td>
+          <td>90</td>
+          <td><span class="badge b-green">部署</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===== 10. 对比分析 ===== -->
+<section style="background:rgba(17,24,39,0.3);">
+  <div class="container">
+    <div class="sec-tag">10 · 竞品对比</div>
+    <h2>与现有工具的差异化</h2>
+
+    <table>
+      <thead>
+        <tr><th>维度</th><th>SCI Writer</th><th>Overleaf / ShareLaTeX</th><th>传统 Word 模板</th><th>AI 写作工具</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>写作引导</strong></td>
+          <td><span class="badge b-green">✅ Wizard 向导</span><br>6 步结构化表单 + 帮助文案</td>
+          <td><span class="badge b-red">❌ 无</span><br>纯编辑器，用户自己写</td>
+          <td><span class="badge b-red">❌ 无</span><br>空白文档</td>
+          <td><span class="badge b-orange">⚠ 依赖生成</span><br>用户仅提供 prompt</td>
+        </tr>
+        <tr>
+          <td><strong>学术句型库</strong></td>
+          <td><span class="badge b-green">✅ 30 条手工模板</span><br>分类树 + 插槽填充</td>
+          <td><span class="badge b-red">❌ 无</span></td>
+          <td><span class="badge b-red">❌ 无</span></td>
+          <td><span class="badge b-orange">⚠ 隐式生成</span><br>不可控、可能不准确</td>
+        </tr>
+        <tr>
+          <td><strong>校验规则</strong></td>
+          <td><span class="badge b-green">✅ 12 条声明式规则</span><br>三层触发 + auto_fix_hint</td>
+          <td><span class="badge b-red">❌ 仅语法</span><br>拼写检查</td>
+          <td><span class="badge b-red">❌ 仅语法</span></td>
+          <td><span class="badge b-red">❌ 无结构性校验</span></td>
+        </tr>
+        <tr>
+          <td><strong>引文格式</strong></td>
+          <td><span class="badge b-green">✅ 5 种手工实现</span><br>IEEE/APA/Vancouver/Nature/MLA</td>
+          <td><span class="badge b-orange">⚠ 依赖 BibTeX</span><br>需手动写 .bib</td>
+          <td><span class="badge b-red">❌ 手动</span><br>Endnote/Zotero 插件</td>
+          <td><span class="badge b-red">❌ 不可靠</span></td>
+        </tr>
+        <tr>
+          <td><strong>AI 依赖</strong></td>
+          <td><span class="badge b-green">✅ 零 AI</span><br>100% 确定性逻辑</td>
+          <td><span class="badge b-green">✅ 零 AI</span></td>
+          <td><span class="badge b-green">✅ 零 AI</span></td>
+          <td><span class="badge b-red">⚠ 100% 依赖</span><br>学术不端风险</td>
+        </tr>
+        <tr>
+          <td><strong>部署方式</strong></td>
+          <td><span class="badge b-cyan">Docker 一键启动</span><br>PostgreSQL+Redis+LanguageTool</td>
+          <td>SaaS 在线</td>
+          <td>本地安装</td>
+          <td>SaaS 在线</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===== 11. 技术创新 ===== -->
+<section>
+  <div class="container">
+    <div class="sec-tag">11 · 技术创新点</div>
+    <h2>6 个值得评审关注的创新设计</h2>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="icon">🌳</div>
+        <h4>1. Document AST 中间表示</h4>
+        <p>
+          设计了一个完整的文档对象模型（AST），将论文表示为 Section → Paragraph → Run（TextRun / CitationRun / FigureRef / EquationRef / TableRef）的树结构。
+          这是整个系统架构的核心创新。所有导出格式共享同一编译管线，新增导出格式只需实现一个新的 Compiler 类。
+        </p>
+      </div>
+      <div class="card">
+        <div class="icon">🧩</div>
+        <h4>2. 带类型系统的插槽式模板引擎</h4>
+        <p>
+          不是简单的字符串替换。每个插槽都有类型定义（text / number / select）、校验规则、选项列表和提示文本。
+          <code>PhraseAssembler.fill()</code> 方法在填充前执行 <code>_validate()</code>：检查必填项、验证 number 类型可转换、确认 select 值在预设选项中。
+          校验失败抛出 <code>SlotValidationError</code> 并精确报告问题插槽。
+        </p>
+      </div>
+      <div class="card">
+        <div class="icon">📋</div>
+        <h4>3. 声明式校验规则引擎</h4>
+        <p>
+          12 条校验规则以纯 JSON 对象数组存储——可以放进数据库由用户自定义，不需要修改任何代码。
+          每条规则有 7 个字段（rule_id / section / trigger / check / field / severity / message / auto_fix_hint），
+          支持 6 种 <code>check_type</code>。三级触发（on_blur / on_section_complete / on_export）精确控制校验时机。
+        </p>
+      </div>
+      <div class="card">
+        <div class="icon">📐</div>
+        <h4>4. 5 种引文格式的纯 Python 实现</h4>
+        <p>
+          <code>CitationFormatter</code> 用 319 行代码实现了 5 种完整引文格式规范——IEEE（方括号编号）、APA 7th（作者-年份括号）、
+          Vancouver（上标编号）、Nature（紧凑上标）、MLA 9th（作者-页码体例）。
+          每种格式都有独立的作者名规范化函数（缩写规则不同），可以基于字段组合的 JSON 模板配置任意新格式。
+        </p>
+      </div>
+      <div class="card">
+        <div class="icon">🖋️</div>
+        <h4>5. 手写 BibTeX/RIS 双格式解析器</h4>
+        <p>
+          用正则表达式从零实现了 BibTeX（<code>@article{key, field={...}}</code>）和 RIS（双字母标签语法）两种文献格式的解析器。
+          支持嵌套花括号值、多值字段聚合、作者名 "Smith, John" 和 "John Smith" 两种格式的自动识别与标准化。
+          附带 <code>detect_format()</code> 自动检测功能——根据文本中是否含有 @ 开头的条目或 TY 标签来判断格式。
+        </p>
+      </div>
+      <div class="card">
+        <div class="icon">🎯</div>
+        <h4>6. 全链路 MVP 闭环</h4>
+        <p>
+          从创建论文 → 分步填写 → 句型库辅助 → 文献导入 → 交叉引用 → 校验 → LaTeX/PDF/Word 导出，全链路跑通。
+          62 个文件、6,904 行代码（含前端），前后端分离架构，Docker 一键部署（含 LanguageTool 语法检查服务）。
+          数据持久化采用 PostgreSQL JSONB —— 保留结构化段落信息的同时支持 SQL 查询。
+        </p>
+      </div>
     </div>
   </div>
-</div>
+</section>
+
+<!-- ===== 12. 验证 ===== -->
+<section style="background:rgba(17,24,39,0.3);">
+  <div class="container">
+    <div class="sec-tag">12 · 验证方案</div>
+    <h2>质量保证与 Demo 演示指标</h2>
+
+    <div class="two-col">
+      <div class="big-card" style="margin:0;">
+        <h4 style="color:var(--cyan);">单元测试覆盖计划</h4>
+        <table>
+          <thead><tr><th>测试对象</th><th>验证点</th></tr></thead>
+          <tbody>
+            <tr><td><code>PhraseAssembler</code></td><td>模板填充正确性、插槽遗漏检测、number/select 类型校验、正则提取</td></tr>
+            <tr><td><code>ReferenceImporter</code></td><td>BibTeX 多条目解析、RIS 多值字段聚合、作者名双格式识别、格式自动检测</td></tr>
+            <tr><td><code>NumberingEngine</code></td><td>Sequential 编号递增、Chapter-based 编号正确性、renumber 全量重排</td></tr>
+            <tr><td><code>CitationFormatter</code></td><td>5 种格式输出与规范对比、作者缩写规则、边界条件（无作者/无年份）</td></tr>
+            <tr><td><code>LaTeXCompiler</code></td><td>特殊字符转义、preamble 模板正确性、xelatex 编译零报错</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="big-card" style="margin:0;">
+        <h4 style="color:var(--cyan);">集成测试与 Demo 指标</h4>
+        <table>
+          <thead><tr><th>指标</th><th>标准</th></tr></thead>
+          <tbody>
+            <tr><td>完整流程走通</td><td>创建论文 → 填写 Introduction（使用句型库）→ 导入文献 → 插入引用 → 导出 PDF</td></tr>
+            <tr><td>PDF 输出检查</td><td>字体（Times New Roman）、行距、图表编号、参考文献格式符合 IEEE 模板规范</td></tr>
+            <tr><td>校验拦截</td><td>提交不完整 Methods → 弹窗拦截并给出具体缺漏项列表 → auto_fix_hint 可操作</td></tr>
+            <tr><td>无学术背景用户测试</td><td>能否在 30 分钟内完成一篇 4 页 IEEE 格式论文框架</td></tr>
+            <tr><td>句型库覆盖率</td><td>Introduction 章节 ≥80% 常见写作意图有对应模板</td></tr>
+            <tr><td>LaTeX 编译</td><td>导出的 .tex 文件通过 xelatex 无报错编译为 PDF</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 13. 启动方式 ===== -->
+<section>
+  <div class="container">
+    <div class="sec-tag">13 · 运行方式</div>
+    <h2>一键启动 Demo</h2>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="icon">🐳</div>
+        <h4>Docker 全栈启动（推荐）</h4>
+        <div class="code-block"><pre>cd D:\CodeProject\scipaper
+
+<span class="cmt"># 启动全部服务 (PostgreSQL + Redis + LanguageTool + Backend + Celery)</span>
+docker-compose up -d
+
+<span class="cmt"># 初始化种子数据（句型库 + 期刊模板）</span>
+docker-compose exec backend python -m seed_data.run_seed
+
+<span class="cmt"># API 文档: http://localhost:8000/docs</span></pre></div>
+      </div>
+      <div class="card">
+        <div class="icon">💻</div>
+        <h4>本地开发模式</h4>
+        <div class="code-block"><pre><span class="cmt"># 终端 1：后端</span>
+cd backend
+uvicorn app.main:app --reload --port 8000
+
+<span class="cmt"># 终端 2：前端</span>
+cd frontend
+npm install && npm run dev
+
+<span class="cmt"># 前端: http://localhost:3000</span>
+<span class="cmt"># API:  http://localhost:8000/docs</span></pre></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 14. 技术栈总览 ===== -->
+<section style="background:rgba(17,24,39,0.3);">
+  <div class="container">
+    <div class="sec-tag">14 · 技术栈总览</div>
+    <h2>完整技术选型</h2>
+
+    <table>
+      <thead><tr><th>层级</th><th>技术</th><th>版本</th><th>选型理由</th></tr></thead>
+      <tbody>
+        <tr><td>前端框架</td><td>React + TypeScript</td><td>18.3</td><td>生态成熟，Ant Design Pro 开箱即用</td></tr>
+        <tr><td>UI 组件库</td><td>Ant Design</td><td>5.20</td><td>Steps / Drawer / Tree / Card 组件全覆盖</td></tr>
+        <tr><td>状态管理</td><td>Zustand</td><td>4.5</td><td>轻量（无需 Redux 样板），适合中型应用</td></tr>
+        <tr><td>后端框架</td><td>Python FastAPI</td><td>0.115</td><td>异步支持好，自动生成 OpenAPI 文档</td></tr>
+        <tr><td>ORM</td><td>SQLAlchemy 2.0 + Alembic</td><td>2.0</td><td>Async 支持，JSONB 列类型原生映射</td></tr>
+        <tr><td>数据库</td><td>PostgreSQL</td><td>15</td><td>JSONB 结构化论文内容，全文索引，关系型查询</td></tr>
+        <tr><td>缓存 / 队列</td><td>Redis</td><td>7</td><td>会话管理 + Celery Broker</td></tr>
+        <tr><td>异步任务</td><td>Celery</td><td>5.4</td><td>PDF 编译（xelatex 可能需几十秒），解耦 HTTP 请求</td></tr>
+        <tr><td>排版引擎</td><td>MiKTeX (xelatex)</td><td>25.12</td><td>学术排版事实标准，系统已安装</td></tr>
+        <tr><td>Word 生成</td><td>python-docx</td><td>1.1</td><td>纯 Python 操作 .docx</td></tr>
+        <tr><td>文档转换</td><td>Pandoc</td><td>3.10</td><td>备选方案，支持更多格式互转</td></tr>
+        <tr><td>语法检查</td><td>LanguageTool (Docker)</td><td>latest</td><td>开源，本地部署，自定义学术词典</td></tr>
+        <tr><td>容器化</td><td>Docker + Docker Compose</td><td>29.5</td><td>一键部署开发环境（含 TeX Live）</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===== 15. 项目结构 ===== -->
+<section>
+  <div class="container">
+    <div class="sec-tag">15 · 项目结构</div>
+    <h2>目录树总览（62 个文件）</h2>
+
+    <div class="code-block"><pre>scipaper/
+├── backend/
+│   ├── app/
+│   │   ├── api/                  <span class="cmt"># 4 个 FastAPI Router（papers, phrasebank, references, export）</span>
+│   │   ├── engines/              <span class="cmt"># 6 个核心引擎（PhraseAssembler, DocumentAST, LaTeX/Docx Compiler,</span>
+│   │   │                         <span class="cmt">#                     NumberingEngine, CitationFormatter）</span>
+│   │   ├── parsers/              <span class="cmt"># 手写 BibTeX + RIS 双格式解析器</span>
+│   │   ├── services/             <span class="cmt"># 3 个业务服务（PhraseService, ExportService, ValidationService）</span>
+│   │   ├── models/               <span class="cmt"># 7 个 SQLAlchemy ORM 模型</span>
+│   │   ├── schemas/              <span class="cmt"># 4 个 Pydantic Schema 定义</span>
+│   │   └── core/                 <span class="cmt"># 配置 / 数据库 / Celery 初始化</span>
+│   └── seed_data/                <span class="cmt"># 短语库 + 期刊模板种子数据</span>
+├── frontend/
+│   └── src/
+│       ├── components/
+│       │   ├── Wizard/           <span class="cmt"># PaperWizard：6 步向导主组件</span>
+│       │   ├── StepForm/         <span class="cmt"># SectionEditor：段落编辑器</span>
+│       │   ├── PhraseBrowser/    <span class="cmt"># 句型库侧边抽屉</span>
+│       │   └── ExportPreview/    <span class="cmt"># 导出/下载面板</span>
+│       ├── stores/               <span class="cmt"># Zustand 全局状态</span>
+│       └── api/                  <span class="cmt"># Axios API 客户端</span>
+├── templates/                    <span class="cmt"># 3 个 LaTeX Jinja2 模板（IEEE, Elsevier, Generic）</span>
+├── docker-compose.yml            <span class="cmt"># 5 服务编排文件</span>
+└── competition.html              <span class="cmt"># 本参赛技术方案书</span></pre></div>
+  </div>
+</section>
 
 <!-- ===== FOOTER ===== -->
-<div class="footer">
-  <p>SCI Writer — 用传统软件工程的力量，让学术界不再有写作门槛</p>
-  <p style="margin-top:8px;">
+<footer>
+  <p style="font-size:16px;color:var(--text);margin-bottom:8px;">SCI Writer — 用传统软件工程的力量，让学术界不再有写作门槛</p>
+  <p>
     📂 <a href="https://github.com/yangxiwen123/scipaper" target="_blank">GitHub: yangxiwen123/scipaper</a>
-    &nbsp;·&nbsp;
-    📧 参赛者: yangxiwen123
+    &nbsp;·&nbsp; 参赛者: <strong>yangxiwen123</strong>
+    &nbsp;·&nbsp; 本地路径: <code>D:\CodeProject\scipaper</code>
   </p>
-  <p style="margin-top:24px;color:var(--text3);font-size:12px;">
-    本项目不依赖任何 AI/LLM 文本生成技术 · 纯传统软件架构（模板引擎 + 规则引擎 + 自动化工作流）
+  <p style="margin-top:20px;color:var(--text3);font-size:12px;">
+    本项目不依赖任何 AI / LLM 文本生成技术 · 纯传统软件架构（模板引擎 + 规则引擎 + 自动化工作流）<br>
+    所有功能都是确定性逻辑——给定相同的输入，系统产生完全相同的输出。
   </p>
-</div>
+</footer>
 
 </body>
 </html>
