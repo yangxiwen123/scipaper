@@ -1,0 +1,76 @@
+{# Generic Academic Template — works as fallback for any journal #}
+\documentclass[11pt,a4paper]{article}
+
+% Page layout
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\doublespacing
+
+% Typography and fonts
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{caption}
+\usepackage{subcaption}
+
+% Hyperref
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue,
+    pdftitle={ {{- title|e -}} }
+}
+
+% Custom commands
+\newcommand{\figref}[1]{Fig.~\ref{#1}}
+\newcommand{\tabref}[1]{Table~\ref{#1}}
+\newcommand{\eqref}[1]{Eq.~\ref{#1}}
+
+\begin{document}
+
+% ---- Title Page ----
+\begin{center}
+    {\LARGE\bfseries {{ title|e }} }
+
+    \vspace{1cm}
+    {% for author in authors %}
+        {{ author.first_name }}~{{ author.last_name }}{% if not loop.last %}, {% endif %}
+    {% endfor %}
+
+    \vspace{0.5cm}
+    {% if authors and authors[0].affiliation %}
+        {\itshape {{ authors[0].affiliation|e }} }
+    {% endif %}
+\end{center}
+
+\vspace{1cm}
+
+% ---- Abstract ----
+{% if abstract %}
+\section*{Abstract}
+{{ abstract }}
+{% endif %}
+
+% ---- Keywords ----
+{% if keywords %}
+\noindent\textbf{Keywords:} {{ keywords|join('; ') }}
+{% endif %}
+
+\vspace{0.5cm}
+
+% ---- Body ----
+{{ body }}
+
+% ---- Bibliography ----
+{{ bibliography }}
+
+% ---- Appendices ----
+{% for apx in appendices %}
+{{ apx }}
+{% endfor %}
+
+\end{document}

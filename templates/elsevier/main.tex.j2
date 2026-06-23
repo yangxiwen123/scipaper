@@ -1,0 +1,56 @@
+{# Elsevier elsarticle Template #}
+\documentclass[review]{elsarticle}
+
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\usepackage{lineno}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+\journal{ {{- journal_name|default('Journal Name')|e -}} }
+
+\newcommand{\figref}[1]{Fig.~\ref{#1}}
+\newcommand{\tabref}[1]{Table~\ref{#1}}
+
+\begin{document}
+
+\begin{frontmatter}
+
+\title{ {{- title|e -}} }
+
+{% for author in authors %}
+\author[{{ loop.index }}]{ {{- author.first_name }}~{{ author.last_name -}} }
+\address[{{ loop.index }}]{ {{- author.affiliation|default('')|e -}} }
+{% endfor %}
+
+{% if abstract %}
+\begin{abstract}
+{{ abstract }}
+\end{abstract}
+{% endif %}
+
+{% if keywords %}
+\begin{keyword}
+{{ keywords|join(' \\sep ') }}
+\end{keyword}
+{% endif %}
+
+\end{frontmatter}
+
+{{ body }}
+
+{{ bibliography }}
+
+{% for apx in appendices %}
+{{ apx }}
+{% endfor %}
+
+\end{document}

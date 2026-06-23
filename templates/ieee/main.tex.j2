@@ -1,0 +1,65 @@
+{# IEEE Template — Jinja2 template for LaTeX compilation #}
+\documentclass[journal,10pt,twocolumn]{IEEEtran}
+
+% Packages
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{cite}
+\usepackage{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\usepackage{multirow}
+
+% Hyperref setup for cross-reference links
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue,
+    pdfauthor={ {{- authors|join(', ') if authors else '' -}} },
+    pdftitle={ {{- title|e -}} }
+}
+
+% Custom commands
+\newcommand{\figref}[1]{Fig.~\ref{#1}}
+\newcommand{\tabref}[1]{Table~\ref{#1}}
+
+% Document
+\begin{document}
+
+% Title
+\title{ {{- title|e -}} }
+
+% Authors
+{% for author in authors %}
+\author{ {{- author.first_name }}~{{ author.last_name -}} }
+{% endfor %}
+
+\maketitle
+
+% Abstract
+{% if abstract %}
+\begin{abstract}
+{{ abstract }}
+\end{abstract}
+{% endif %}
+
+% Keywords
+{% if keywords %}
+\begin{IEEEkeywords}
+{{ keywords|join('; ') }}
+\end{IEEEkeywords}
+{% endif %}
+
+% Body
+{{ body }}
+
+% Bibliography
+{{ bibliography }}
+
+% Appendices
+{% for apx in appendices %}
+{{ apx }}
+{% endfor %}
+
+\end{document}
