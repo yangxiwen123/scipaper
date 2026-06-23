@@ -33,6 +33,9 @@ Thumbs.db
 backend/exports/
 backend/uploads/
 
+# Claude Code (local overrides only — committed settings are shared)
+.claude/settings.local.json
+
 # Python cache
 .mypy_cache/
 .pytest_cache/
