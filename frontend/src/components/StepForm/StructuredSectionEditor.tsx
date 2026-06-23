@@ -1,364 +1,186 @@
 /**
- * StructuredSectionEditor — fill-in-the-blank forms for each SCI section.
- *
- * This is THE core user experience. Instead of a blank textarea, users see
- * labeled sub-fields with hints, examples, word counters, and phrasebank
- * suggestions tailored to each writing function.
+ * 结构化章节编辑器 — 把每个 SCI 章节变成"填空题"
+ * 普通人不需要盯着白纸发呆，每个框都告诉你要写什么
  */
 import React, { useCallback, useState } from 'react';
-import {
-  Input, Typography, Tag, Button, Tooltip, Progress, Space,
-} from 'antd';
-import {
-  QuestionCircleOutlined, BulbOutlined, BookOutlined,
-  ExclamationCircleOutlined,
-} from '@ant-design/icons';
+import { Input, Typography, Tag, Button, Tooltip, Progress, Space } from 'antd';
+import { QuestionCircleOutlined, BulbOutlined, BookOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { usePaperStore } from '../../stores/paperStore';
-import {
-  SECTION_SCHEMAS,
-  getDefaultFieldValues,
-  fieldValuesToSectionContent,
-} from '../../data/sectionSchemas';
+import { SECTION_SCHEMAS, getDefaultFieldValues } from '../../data/sectionSchemas';
 import type { FormField, FieldValues } from '../../data/sectionSchemas';
 
 const { TextArea } = Input;
 const { Text, Paragraph } = Typography;
 
-interface Props {
-  sectionName: string;
-}
+interface Props { sectionName: string; }
 
 export function StructuredSectionEditor({ sectionName }: Props) {
-  const {
-    sections, updateSectionContent,
-    togglePhraseBrowser,
-  } = usePaperStore();
-
+  const { sections, updateSectionContent, togglePhraseBrowser } = usePaperStore();
   const schema = SECTION_SCHEMAS[sectionName];
   const section = sections[sectionName];
-
-  // ---- Recover field values from content_json or use defaults ----
   const fieldValues = recoverFieldValues(sectionName, section?.content_json as any);
 
-  // Count completed fields
   const totalFields = schema?.fields.length || 0;
-  const filledFields = schema?.fields.filter(
-    (f) => fieldValues[f.key]?.trim(),
-  ).length;
-  const completionPercent = totalFields > 0
-    ? Math.round((filledFields / totalFields) * 100)
-    : 0;
+  const filledFields = schema?.fields.filter((f) => fieldValues[f.key]?.trim()).length;
+  const completionPercent = totalFields > 0 ? Math.round((filledFields / totalFields) * 100) : 0;
 
-  // ---- Handle field change ----
-  const handleFieldChange = useCallback(
-    (fieldKey: string, value: string) => {
-      const newValues = { ...fieldValues, [fieldKey]: value };
+  const handleChange = useCallback((fieldKey: string, value: string) => {
+    const newValues = { ...fieldValues, [fieldKey]: value };
+    const content = (section?.content_json || {}) as Record<string, any>;
+    const updated = {
+      ...content,
+      _fieldValues: newValues,
+      paragraphs: schema.fields
+        .filter((f) => (f.key === fieldKey ? value?.trim() : fieldValues[f.key]?.trim()))
+        .map((f) => ({ id: `${sectionName}_${f.key}`, runs: [{ type: 'text', text: f.key === fieldKey ? value : (fieldValues[f.key] || '') }] })),
+      phrases_used: content.phrases_used || [],
+      figures_refs: content.figures_refs || [],
+      table_refs: content.table_refs || [],
+    };
+    updateSectionContent(sectionName, updated);
+  }, [sectionName, section, fieldValues, schema, updateSectionContent]);
 
-      // Save structured values into content_json
-      const content = (section?.content_json || {}) as Record<string, any>;
-      const updatedContent = {
-        ...content,
-        _fieldValues: newValues,
-        paragraphs: schema.fields
-          .filter((f) => (f.key === fieldKey ? value?.trim() : fieldValues[f.key]?.trim()) || (f.key !== fieldKey && fieldValues[f.key]?.trim()))
-          .map((f) => ({
-            id: `${sectionName}_field_${f.key}`,
-            runs: [{ type: 'text', text: f.key === fieldKey ? value : (fieldValues[f.key] || '') }],
-          })),
-        phrases_used: content.phrases_used || [],
-        figures_refs: content.figures_refs || [],
-        table_refs: content.table_refs || [],
-      };
-
-      updateSectionContent(sectionName, updatedContent);
-    },
-    [sectionName, section, fieldValues, schema, updateSectionContent],
-  );
-
-  if (!schema) {
-    return (
-      <div style={{ padding: 40, textAlign: 'center' }}>
-        <Text type="secondary">No structured form available for this section.</Text>
-      </div>
-    );
-  }
+  if (!schema) return <Text type="secondary">此章节暂无结构化表单。</Text>;
 
   return (
     <div>
-      {/* Section Description */}
-      <div
-        style={{
-          background: 'rgba(56,189,248,0.04)',
-          border: '1px solid var(--border)',
-          borderRadius: 8,
-          padding: '12px 16px',
-          marginBottom: 20,
-        }}
-      >
-        <Space>
-          <BookOutlined style={{ color: 'var(--accent-cyan)' }} />
-          <Text style={{ color: 'var(--text-secondary)', fontSize: 13, fontFamily: 'inherit' }}>
-            {schema.description}
-          </Text>
-        </Space>
+      {/* 章节说明 */}
+      <div style={{ background: 'rgba(226,176,74,0.04)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '14px 18px', marginBottom: 22 }}>
+        <Space><BookOutlined style={{ color: 'var(--gold)' }} /><Text style={{ color: 'var(--text-soft)', fontSize: 13, lineHeight: 1.7 }}>{schema.description}</Text></Space>
       </div>
 
-      {/* Progress Bar */}
-      <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', gap: 16 }}>
-        <Progress
-          percent={completionPercent}
-          size="small"
-          style={{ flex: 1, margin: 0 }}
-          strokeColor={
-            completionPercent === 100
-              ? 'var(--accent-green)'
-              : 'var(--accent-cyan)'
-          }
-        />
-        <Text style={{ color: 'var(--text3)', fontSize: 12, whiteSpace: 'nowrap', fontFamily: 'inherit' }}>
-          {filledFields}/{totalFields} fields
-        </Text>
-        {completionPercent === 100 ? (
-          <Tag color="green" style={{ fontSize: 10 }}>Complete</Tag>
-        ) : (
-          <Tag style={{ fontSize: 10 }}>In Progress</Tag>
-        )}
+      {/* 完成进度 */}
+      <div style={{ marginBottom: 28, display: 'flex', alignItems: 'center', gap: 14 }}>
+        <Progress percent={completionPercent} size="small" style={{ flex: 1, margin: 0 }}
+          strokeColor={completionPercent === 100 ? 'var(--teal)' : 'var(--gold)'} trailColor="var(--border)" />
+        <Text style={{ color: 'var(--text-dim)', fontSize: 12, whiteSpace: 'nowrap' }}>{filledFields}/{totalFields} 项已填</Text>
+        <Tag color={completionPercent === 100 ? 'success' : 'default'} style={{ fontSize: 10 }}>{completionPercent === 100 ? '✓ 完成' : '进行中'}</Tag>
       </div>
 
-      {/* Field Forms */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* 字段卡片列表 */}
+      <div className="stagger" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         {schema.fields.map((field, idx) => (
-          <FieldCard
-            key={field.key}
-            field={field}
-            index={idx}
-            value={fieldValues[field.key] || ''}
-            onChange={(v) => handleFieldChange(field.key, v)}
-            onOpenPhrasebank={() => togglePhraseBrowser(sectionName)}
-          />
+          <FieldCard key={field.key} field={field} index={idx} value={fieldValues[field.key] || ''}
+            onChange={(v) => handleChange(field.key, v)}
+            onOpenPhrasebank={() => togglePhraseBrowser(sectionName)} />
         ))}
       </div>
 
-      {/* Section Word Count */}
-      <div style={{ marginTop: 20, textAlign: 'right' }}>
-        <Text style={{ color: 'var(--text3)', fontSize: 12, fontFamily: 'inherit' }}>
-          Total: {estimateTotalWords(fieldValues)} words · {section?.is_complete ? '✓ Marked Complete' : 'Draft'}
+      {/* 底部统计 */}
+      <div style={{ marginTop: 22, textAlign: 'right' }}>
+        <Text style={{ color: 'var(--text-dim)', fontSize: 12 }}>
+          本节共 {estimateTotalWords(fieldValues)} 词 · {section?.is_complete ? '✓ 已标记完成' : '草稿中'}
         </Text>
       </div>
     </div>
   );
 }
 
-// ============================================================================
-// FieldCard — individual field with label, hint, word count, example
-// ============================================================================
-
-function FieldCard({
-  field, index, value, onChange, onOpenPhrasebank,
-}: {
-  field: FormField;
-  index: number;
-  value: string;
-  onChange: (v: string) => void;
-  onOpenPhrasebank: () => void;
+/* ═══════════════════════════════════════════════════════════════
+   FieldCard
+   ═══════════════════════════════════════════════════════════════ */
+function FieldCard({ field, index, value, onChange, onOpenPhrasebank }: {
+  field: FormField; index: number; value: string; onChange: (v: string) => void; onOpenPhrasebank: () => void;
 }) {
   const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
   const [minWords, maxWords] = field.words || [0, Infinity];
-  const wordStatus: 'ok' | 'short' | 'over' =
-    wordCount === 0 ? 'short'
-    : wordCount < minWords ? 'short'
-    : wordCount > maxWords ? 'over'
-    : 'ok';
-
+  const wordStatus: 'ok' | 'short' | 'over' = wordCount === 0 ? 'short' : wordCount < minWords ? 'short' : wordCount > maxWords ? 'over' : 'ok';
   const [showExample, setShowExample] = useState(false);
+  const isFilled = !!value.trim();
 
   return (
-    <div
+    <div className="animate-fade-up"
       style={{
-        background: 'var(--bg-elevated)',
-        border: `1px solid ${value.trim() ? 'var(--border)' : 'rgba(248,113,113,0.2)'}`,
-        borderRadius: 10,
-        padding: 20,
-        transition: 'border-color 0.2s',
+        background: isFilled ? 'var(--bg-card)' : 'var(--bg-surface)',
+        border: `1px solid ${isFilled ? 'var(--border)' : 'rgba(224,85,106,0.25)'}`,
+        borderRadius: 'var(--radius-md)',
+        padding: 22,
+        transition: 'all 0.3s ease',
+        boxShadow: isFilled ? undefined : '0 0 0 1px rgba(224,85,106,0.06)',
       }}
+      onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--gold)'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(226,176,74,0.08)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.borderColor = isFilled ? 'var(--border)' : 'rgba(224,85,106,0.25)'; e.currentTarget.style.boxShadow = isFilled ? 'none' : '0 0 0 1px rgba(224,85,106,0.06)'; }}
     >
-      {/* Field Header */}
+      {/* 字段头部 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
         <div style={{ flex: 1 }}>
           <Space size={6}>
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 22,
-                height: 22,
-                borderRadius: '50%',
-                background: value.trim()
-                  ? 'var(--accent-green)'
-                  : 'var(--bg-dark)',
-                border: value.trim()
-                  ? 'none'
-                  : '1px solid var(--border)',
-                color: value.trim() ? '#fff' : 'var(--text3)',
-                fontSize: 11,
-                fontWeight: 600,
-              }}
-            >
-              {value.trim() ? '✓' : index + 1}
-            </span>
-            <Text strong style={{ color: 'var(--text-primary)', fontSize: 14, fontFamily: 'inherit' }}>
-              {field.label}
-            </Text>
-            {field.required && (
-              <Tag color="red" style={{ fontSize: 9 }}>Required</Tag>
-            )}
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 24, height: 24, borderRadius: '50%',
+              background: isFilled ? 'var(--teal)' : 'var(--bg-elevated)',
+              border: isFilled ? 'none' : '1px solid var(--border)',
+              color: isFilled ? '#fff' : 'var(--text-dim)', fontSize: 11, fontWeight: 700,
+              flexShrink: 0,
+            }}>{isFilled ? '✓' : index + 1}</span>
+            <Text strong style={{ color: 'var(--text-main)', fontSize: 14 }}>{field.label}</Text>
+            {field.required && <Tag color="error" style={{ fontSize: 9, lineHeight: '16px' }}>必填</Tag>}
           </Space>
         </div>
-
-        {/* Word count badge */}
         {field.words && (
-          <Tooltip title={`Target: ${minWords}-${maxWords} words`}>
-            <Tag
-              color={wordStatus === 'ok' ? 'green' : wordStatus === 'over' ? 'orange' : 'default'}
-              style={{ fontSize: 10, fontFamily: 'inherit' }}
-            >
-              {wordCount}/{minWords}
-              {maxWords < Infinity ? `-${maxWords}` : '+'} words
+          <Tooltip title={`建议 ${minWords}-${maxWords === Infinity ? '不限' : maxWords} 词`}>
+            <Tag color={wordStatus === 'ok' ? 'success' : wordStatus === 'over' ? 'warning' : 'default'} style={{ fontSize: 10 }}>
+              {wordCount}/{minWords}{maxWords < Infinity ? `-${maxWords}` : '+'} 词
             </Tag>
           </Tooltip>
         )}
       </div>
 
-      {/* Hint */}
-      <Text style={{ color: 'var(--text3)', fontSize: 12, display: 'block', marginBottom: 10, fontFamily: 'inherit', lineHeight: 1.6 }}>
-        <QuestionCircleOutlined style={{ marginRight: 4 }} />
-        {field.hint}
+      {/* 提示 */}
+      <Text style={{ color: 'var(--text-dim)', fontSize: 12, display: 'block', marginBottom: 10, lineHeight: 1.6 }}>
+        <QuestionCircleOutlined style={{ marginRight: 5 }} />{field.hint}
       </Text>
 
-      {/* Textarea */}
-      <TextArea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={field.placeholder}
-        autoSize={{ minRows: 3, maxRows: 15 }}
+      {/* 文本框 */}
+      <TextArea value={value} onChange={(e) => onChange(e.target.value)} placeholder={field.placeholder}
+        autoSize={{ minRows: 3, maxRows: 14 }}
         style={{
-          fontFamily: 'inherit',
-          background: 'var(--bg-dark)',
-          borderColor: value.trim() ? 'var(--border)' : 'rgba(248,113,113,0.25)',
-          color: 'var(--text-primary)',
-          fontSize: 14,
-          lineHeight: 1.8,
-          resize: 'none',
-        }}
-      />
+          fontFamily: 'inherit', background: 'var(--bg-surface)', borderColor: isFilled ? 'var(--border)' : 'rgba(224,85,106,0.25)',
+          color: 'var(--text-main)', fontSize: 14, lineHeight: 1.85, resize: 'none', borderRadius: 'var(--radius-sm)',
+        }} />
 
-      {/* Action bar */}
+      {/* 操作栏 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-        <Space size={4}>
-          {/* Toggle example */}
+        <Space size={2}>
           {field.example && (
-            <Button
-              type="text"
-              size="small"
-              icon={<BulbOutlined />}
-              onClick={() => setShowExample(!showExample)}
-              style={{ color: 'var(--accent-orange)', fontSize: 11, fontFamily: 'inherit' }}
-            >
-              {showExample ? 'Hide Example' : 'Show Example'}
-            </Button>
+            <Button type="text" size="small" icon={<BulbOutlined />} onClick={() => setShowExample(!showExample)}
+              style={{ color: 'var(--gold-light)', fontSize: 11 }}>{showExample ? '收起例句' : '查看例句'}</Button>
           )}
-          {/* Open phrasebank for this section */}
-          <Button
-            type="text"
-            size="small"
-            icon={<BookOutlined />}
-            onClick={onOpenPhrasebank}
-            style={{ color: 'var(--accent-purple)', fontSize: 11, fontFamily: 'inherit' }}
-          >
-            Phrasebank
-          </Button>
+          <Button type="text" size="small" icon={<BookOutlined />} onClick={onOpenPhrasebank}
+            style={{ color: 'var(--teal)', fontSize: 11 }}>句型库</Button>
         </Space>
-
-        {wordStatus === 'short' && value.trim() && (
-          <Text style={{ color: 'var(--warning)', fontSize: 11 }}>
-            <ExclamationCircleOutlined /> Below recommended length
-          </Text>
-        )}
-        {wordStatus === 'over' && (
-          <Text style={{ color: 'var(--warning)', fontSize: 11 }}>
-            <ExclamationCircleOutlined /> Exceeds recommended length
-          </Text>
-        )}
+        {wordStatus === 'short' && value.trim() && <Text style={{ color: 'var(--warn)', fontSize: 11 }}><ExclamationCircleOutlined /> 字数偏少</Text>}
+        {wordStatus === 'over' && <Text style={{ color: 'var(--warn)', fontSize: 11 }}><ExclamationCircleOutlined /> 超过建议长度</Text>}
       </div>
 
-      {/* Example panel */}
+      {/* 例句面板 */}
       {showExample && field.example && (
-        <div
-          style={{
-            marginTop: 10,
-            padding: 12,
-            background: 'rgba(251,191,36,0.06)',
-            border: '1px dashed rgba(251,191,36,0.3)',
-            borderRadius: 6,
-          }}
-        >
-          <Text style={{ color: 'var(--accent-orange)', fontSize: 11, fontFamily: 'inherit' }}>
-            <BulbOutlined /> Example:
-          </Text>
-          <Paragraph
-            style={{
-              color: 'var(--text-secondary)',
-              fontSize: 12,
-              marginTop: 4,
-              marginBottom: 0,
-              fontFamily: 'inherit',
-              fontStyle: 'italic',
-            }}
-          >
-            {field.example}
-          </Paragraph>
+        <div style={{ marginTop: 12, padding: 14, background: 'rgba(226,176,74,0.04)', border: '1px dashed rgba(226,176,74,0.2)', borderRadius: 'var(--radius-sm)' }}>
+          <Text style={{ color: 'var(--gold-light)', fontSize: 11 }}><BulbOutlined /> 参考例句:</Text>
+          <Paragraph style={{ color: 'var(--text-soft)', fontSize: 12, marginTop: 6, marginBottom: 0, fontStyle: 'italic', lineHeight: 1.8 }}>{field.example}</Paragraph>
         </div>
       )}
     </div>
   );
 }
 
-// ============================================================================
-// Utilities
-// ============================================================================
-
-function recoverFieldValues(
-  sectionName: string,
-  content: Record<string, any> | null | undefined,
-): FieldValues {
-  // Try to recover from _fieldValues (new format)
-  if (content?._fieldValues && typeof content._fieldValues === 'object') {
-    return content._fieldValues as FieldValues;
-  }
-
-  // Try to recover from paragraphs (old format: first text run of each paragraph)
+/* ═══════════════════════════════════════════════════════════════
+   工具函数
+   ═══════════════════════════════════════════════════════════════ */
+function recoverFieldValues(sectionName: string, content: Record<string, any> | null | undefined): FieldValues {
+  if (content?._fieldValues && typeof content._fieldValues === 'object') return content._fieldValues as FieldValues;
   const schema = SECTION_SCHEMAS[sectionName];
   if (!schema) return getDefaultFieldValues(sectionName);
-
-  const values = getDefaultFieldValues(sectionName);
-  const paragraphs = content?.paragraphs || [];
-  const fieldKeys = schema.fields.map((f) => f.key);
-
-  for (let i = 0; i < paragraphs.length && i < fieldKeys.length; i++) {
-    const firstTextRun = paragraphs[i]?.runs?.find(
-      (r: any) => r.type === 'text',
-    );
-    if (firstTextRun?.text) {
-      values[fieldKeys[i]] = firstTextRun.text;
-    }
+  const vals = getDefaultFieldValues(sectionName);
+  const paras = content?.paragraphs || [];
+  const keys = schema.fields.map((f) => f.key);
+  for (let i = 0; i < paras.length && i < keys.length; i++) {
+    const tr = paras[i]?.runs?.find((r: any) => r.type === 'text');
+    if (tr?.text) vals[keys[i]] = tr.text;
   }
-
-  return values;
+  return vals;
 }
 
 function estimateTotalWords(values: FieldValues): number {
-  return Object.values(values)
-    .filter(Boolean)
-    .reduce((sum, text) => sum + text.split(/\s+/).filter(Boolean).length, 0);
+  return Object.values(values).filter(Boolean).reduce((sum, t) => sum + t.split(/\s+/).filter(Boolean).length, 0);
 }

@@ -1,25 +1,14 @@
 /**
- * ExportPreview — modal for downloading/exporting the paper.
- * Allows format selection (PDF, LaTeX, Word) and shows download progress.
+ * 导出面板 — 选择格式、期刊模板，一键下载
  */
 import { useState } from 'react';
-import {
-  Modal, Button, Radio, Space, Typography, Progress, Alert, Tag, message,
-} from 'antd';
-import {
-  DownloadOutlined, FilePdfOutlined, FileTextOutlined,
-  FileWordOutlined, CheckCircleOutlined,
-} from '@ant-design/icons';
+import { Modal, Button, Radio, Space, Typography, Alert, Tag, message } from 'antd';
+import { DownloadOutlined, FilePdfOutlined, FileTextOutlined, FileWordOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import * as api from '../../api/client';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
-interface Props {
-  open: boolean;
-  onClose: () => void;
-  paperId: string;
-}
-
+interface Props { open: boolean; onClose: () => void; paperId: string; }
 type ExportFormat = 'pdf' | 'latex' | 'docx';
 
 export function ExportPreview({ open, onClose, paperId }: Props) {
@@ -30,213 +19,78 @@ export function ExportPreview({ open, onClose, paperId }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const handleExport = async () => {
-    setExporting(true);
-    setError(null);
-    setResult(null);
-
+    setExporting(true); setError(null); setResult(null);
     try {
       const data = await api.exportPaper(paperId, format, template);
       setResult(data);
-
-      if (data.errors?.length > 0) {
-        setError(data.errors.join('; '));
-      } else {
-        message.success(`Exported successfully as ${format.toUpperCase()}!`);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Export failed');
-    }
+      if (data.errors?.length > 0) setError(data.errors.join('；'));
+      else message.success(`已成功导出为 ${format.toUpperCase()}！`);
+    } catch (e: any) { setError(e.message || '导出失败'); }
     setExporting(false);
   };
 
-  const handleDownload = () => {
-    const url = api.getDownloadUrl(paperId, format);
-    window.open(url, '_blank');
-  };
+  const handleDownload = () => window.open(api.getDownloadUrl(paperId, format), '_blank');
 
-  const formatIcons: Record<ExportFormat, React.ReactNode> = {
-    pdf: <FilePdfOutlined style={{ fontSize: 24, color: '#f85149' }} />,
-    latex: <FileTextOutlined style={{ fontSize: 24, color: '#58a6ff' }} />,
-    docx: <FileWordOutlined style={{ fontSize: 24, color: '#3fb950' }} />,
+  const icons: Record<ExportFormat, React.ReactNode> = {
+    pdf: <FilePdfOutlined style={{ fontSize: 26, color: '#e0556a' }} />,
+    latex: <FileTextOutlined style={{ fontSize: 26, color: '#7eb8da' }} />,
+    docx: <FileWordOutlined style={{ fontSize: 26, color: '#5ec4b0' }} />,
   };
-
-  const formatLabels: Record<ExportFormat, string> = {
-    pdf: 'PDF (via LaTeX → xelatex)',
-    latex: 'LaTeX Source (.tex)',
-    docx: 'Microsoft Word (.docx)',
+  const labels: Record<ExportFormat, string> = {
+    pdf: 'PDF（通过 LaTeX → xelatex 编译）',
+    latex: 'LaTeX 源码（.tex 文件）',
+    docx: 'Microsoft Word（.docx）',
   };
 
   return (
-    <Modal
-      title={
-        <Space>
-          <DownloadOutlined style={{ color: 'var(--accent-cyan)' }} />
-          <span style={{ fontFamily: 'inherit' }}>Export Paper</span>
-        </Space>
-      }
-      open={open}
-      onCancel={onClose}
+    <Modal title={<Space><DownloadOutlined style={{ color: 'var(--gold)' }} /><span>导出论文</span></Space>}
+      open={open} onCancel={onClose} width={540}
       footer={[
-        <Button key="cancel" onClick={onClose} style={{ fontFamily: 'inherit' }}>
-          Close
-        </Button>,
-        <Button
-          key="download"
-          type="primary"
-          onClick={handleDownload}
-          disabled={!result || !result.file_path}
-          icon={<DownloadOutlined />}
-          style={{ fontFamily: 'inherit' }}
-        >
-          Download
-        </Button>,
-        <Button
-          key="export"
-          type="primary"
-          onClick={handleExport}
-          loading={exporting}
-          icon={<CheckCircleOutlined />}
-          className="glow-cyan"
-          style={{ fontFamily: 'inherit' }}
-        >
-          Compile & Export
-        </Button>,
-      ]}
-      width={560}
-    >
+        <Button key="close" onClick={onClose}>关闭</Button>,
+        <Button key="download" type="primary" onClick={handleDownload} disabled={!result?.file_path} icon={<DownloadOutlined />}>下载文件</Button>,
+        <Button key="export" type="primary" onClick={handleExport} loading={exporting} icon={<CheckCircleOutlined />} style={{ background: 'linear-gradient(135deg, var(--gold-dim), var(--gold))', border: 'none', fontWeight: 600 }}>编译并导出</Button>,
+      ]}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        {/* Format Selection */}
+        {/* 导出格式 */}
         <div>
-          <Text style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: 12 }}>
-            Export Format
-          </Text>
-          <Radio.Group
-            value={format}
-            onChange={(e) => setFormat(e.target.value)}
-            style={{ width: '100%' }}
-          >
+          <Text style={{ color: 'var(--text-dim)', display: 'block', marginBottom: 12, fontSize: 12 }}>导出格式</Text>
+          <Radio.Group value={format} onChange={(e) => setFormat(e.target.value)} style={{ width: '100%' }}>
             <Space direction="vertical" style={{ width: '100%' }}>
-              {(Object.keys(formatLabels) as ExportFormat[]).map((fmt) => (
-                <Radio
-                  key={fmt}
-                  value={fmt}
-                  style={{
-                    padding: '12px 16px',
-                    background: format === fmt ? 'rgba(88,166,255,0.1)' : 'var(--bg-elevated)',
-                    borderRadius: 8,
-                    border: `1px solid ${format === fmt ? 'var(--accent-cyan)' : 'var(--border)'}`,
-                    width: '100%',
-                    margin: 0,
-                  }}
-                >
-                  <Space>
-                    {formatIcons[fmt]}
-                    <div>
-                      <Text strong style={{ color: 'var(--text-primary)', fontFamily: 'inherit' }}>
-                        {fmt.toUpperCase()}
-                      </Text>
-                      <br />
-                      <Text style={{ color: 'var(--text-secondary)', fontSize: 12 }}>
-                        {formatLabels[fmt]}
-                      </Text>
-                    </div>
-                  </Space>
+              {(Object.keys(labels) as ExportFormat[]).map((fmt) => (
+                <Radio key={fmt} value={fmt} style={{
+                  padding: '14px 18px', background: format === fmt ? 'rgba(226,176,74,0.06)' : 'var(--bg-surface)',
+                  borderRadius: 'var(--radius-sm)', border: `1px solid ${format === fmt ? 'var(--gold)' : 'var(--border)'}`,
+                  width: '100%', margin: 0, transition: 'all 0.2s',
+                }}>
+                  <Space>{icons[fmt]}<div><Text strong style={{ color: 'var(--text-main)' }}>{fmt.toUpperCase()}</Text><br /><Text style={{ color: 'var(--text-dim)', fontSize: 11 }}>{labels[fmt]}</Text></div></Space>
                 </Radio>
               ))}
             </Space>
           </Radio.Group>
         </div>
-
-        {/* Template Selection */}
+        {/* 期刊模板 */}
         <div>
-          <Text style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: 12 }}>
-            Journal Template
-          </Text>
-          <Radio.Group
-            value={template}
-            onChange={(e) => setTemplate(e.target.value)}
-          >
+          <Text style={{ color: 'var(--text-dim)', display: 'block', marginBottom: 12, fontSize: 12 }}>目标期刊模板</Text>
+          <Radio.Group value={template} onChange={(e) => setTemplate(e.target.value)}>
             <Space wrap>
-              {[
-                { value: 'ieee', label: 'IEEE', color: 'cyan' },
-                { value: 'elsevier', label: 'Elsevier', color: 'purple' },
-                { value: 'springer', label: 'Springer', color: 'green' },
-                { value: 'nature', label: 'Nature', color: 'orange' },
-                { value: 'generic', label: 'Generic', color: 'default' },
-              ].map((t) => (
-                <Radio.Button
-                  key={t.value}
-                  value={t.value}
-                  style={{ fontFamily: 'inherit' }}
-                >
-                  {t.label}
-                </Radio.Button>
+              {[{ v: 'ieee', l: 'IEEE' }, { v: 'elsevier', l: 'Elsevier' }, { v: 'springer', l: 'Springer' }, { v: 'nature', l: 'Nature' }, { v: 'generic', l: '通用' }].map((t) => (
+                <Radio.Button key={t.v} value={t.v}>{t.l}</Radio.Button>
               ))}
             </Space>
           </Radio.Group>
         </div>
-
-        {/* Error */}
-        {error && (
-          <Alert
-            type="error"
-            message="Export Issues"
-            description={error}
-            showIcon
-            style={{ fontFamily: 'inherit' }}
-          />
+        {error && <Alert type="error" message="导出问题" description={error} showIcon />}
+        {result?.file_path && !error && (
+          <Alert type="success" message="导出成功" showIcon
+            description={<div><Text>文件：{result.file_path?.split('/').pop() || result.file_path}</Text><br />
+              <Text style={{ color: 'var(--text-dim)', fontSize: 11 }}>大小：{(result.file_size / 1024).toFixed(1)} KB</Text>
+              {result.warnings?.length > 0 && <div style={{ marginTop: 8 }}>{result.warnings.map((w: string, i: number) => <Tag key={i} color="warning" style={{ fontSize: 10 }}>{w}</Tag>)}</div>}
+            </div>} />
         )}
-
-        {/* Result */}
-        {result && result.file_path && !error && (
-          <Alert
-            type="success"
-            message="Export Successful"
-            description={
-              <div>
-                <Text style={{ fontFamily: 'inherit' }}>
-                  File: {result.file_path?.split('/').pop() || result.file_path}
-                </Text>
-                <br />
-                <Text style={{ color: 'var(--text-secondary)', fontSize: 12 }}>
-                  Size: {(result.file_size / 1024).toFixed(1)} KB
-                </Text>
-                {result.warnings?.length > 0 && (
-                  <div style={{ marginTop: 8 }}>
-                    {result.warnings.map((w: string, i: number) => (
-                      <Tag key={i} color="orange" style={{ fontFamily: 'inherit' }}>
-                        {w}
-                      </Tag>
-                    ))}
-                  </div>
-                )}
-              </div>
-            }
-            showIcon
-            style={{ fontFamily: 'inherit' }}
-          />
-        )}
-
-        {/* Compilation log (for LaTeX) */}
         {result?.compile_log && (
           <div>
-            <Text style={{ color: 'var(--text-secondary)', fontSize: 12 }}>
-              Compilation Log:
-            </Text>
-            <pre
-              style={{
-                background: 'var(--bg-dark)',
-                color: 'var(--text-secondary)',
-                padding: 12,
-                borderRadius: 8,
-                fontSize: 10,
-                maxHeight: 150,
-                overflow: 'auto',
-                fontFamily: 'inherit',
-              }}
-            >
-              {result.compile_log.slice(-2000)}
-            </pre>
+            <Text style={{ color: 'var(--text-dim)', fontSize: 11 }}>编译日志：</Text>
+            <pre style={{ background: 'var(--bg-root)', color: 'var(--text-dim)', padding: 12, borderRadius: 'var(--radius-sm)', fontSize: 10, maxHeight: 140, overflow: 'auto', fontFamily: 'monospace' }}>{result.compile_log.slice(-1500)}</pre>
           </div>
         )}
       </Space>

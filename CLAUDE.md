@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 语言规则
+
+**永远使用中文回复**。所有注释、文档、commit message、UI 文案均使用中文。
+
 ## Project Identity
 
 SCI Writer — a zero-AI, traditional-software-architecture SCI paper writing assistant for non-academics. Template engine + rule engine + wizard UI + auto-typesetting pipeline. Competition entry for the Trae Creativity Contest.

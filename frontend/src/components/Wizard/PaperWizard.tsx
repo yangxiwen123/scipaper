@@ -1,24 +1,11 @@
 /**
- * PaperWizard — the main stepper-based writing interface.
- *
- * Guides users through all 6 SCI paper sections with structured
- * fill-in-the-blank forms, integrated phrasebank, and real-time
- * progress tracking. Works in two modes:
- *   1. Standalone (localStorage) — no backend needed
- *   2. Connected (API) — full backend with LaTeX/PDF export
+ * 论文写作向导 — 6 步引导式表单
+ * "像做填空题一样写 SCI 论文"
  */
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  Steps, Button, Space, Card, Progress, Typography, Tooltip,
-  Tag, message, Alert,
-} from 'antd';
-import {
-  CheckCircleOutlined, DownloadOutlined, BookOutlined,
-  LeftOutlined, RightOutlined, ExclamationCircleOutlined,
-} from '@ant-design/icons';
-import {
-  usePaperStore, SECTION_ORDER, SECTION_LABELS, SECTION_HELP,
-} from '../../stores/paperStore';
+import { useState, useMemo } from 'react';
+import { Steps, Button, Space, Card, Progress, Typography, Tooltip, Tag, message, Alert } from 'antd';
+import { CheckCircleOutlined, DownloadOutlined, BookOutlined, LeftOutlined, RightOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { usePaperStore, SECTION_ORDER, SECTION_LABELS, SECTION_HELP } from '../../stores/paperStore';
 import { SECTION_SCHEMAS } from '../../data/sectionSchemas';
 import { StructuredSectionEditor } from '../StepForm/StructuredSectionEditor';
 import { PhraseBrowser } from '../PhraseBrowser/PhraseBrowser';
@@ -27,166 +14,113 @@ import { ExportPreview } from '../ExportPreview/ExportPreview';
 const { Title, Text } = Typography;
 
 export function PaperWizard() {
-  const {
-    paper, sections, currentStep, setCurrentStep,
-    phraseBrowserOpen, togglePhraseBrowser, closePhraseBrowser,
-    toggleSectionComplete, isStandalone,
-  } = usePaperStore();
-
+  const { paper, sections, currentStep, setCurrentStep, isStandalone, phraseBrowserOpen, togglePhraseBrowser, closePhraseBrowser, toggleSectionComplete } = usePaperStore();
   const [showExport, setShowExport] = useState(false);
-  const [localIssues, setLocalIssues] = useState<any[]>([]);
+  const [issues, setIssues] = useState<any[]>([]);
 
-  if (!paper) {
-    return (
-      <div style={{ textAlign: 'center', padding: 80 }}>
-        <Text type="secondary" style={{ fontFamily: 'inherit' }}>No paper loaded.</Text>
-      </div>
-    );
-  }
+  if (!paper) return <div style={{ textAlign: 'center', padding: 80, color: 'var(--text-dim)' }}>未加载论文。</div>;
 
-  const currentSectionName = SECTION_ORDER[currentStep];
-  const schema = SECTION_SCHEMAS[currentSectionName];
-
-  const completedSections = SECTION_ORDER.filter(
-    (name) => sections[name]?.is_complete,
-  ).length;
-  const progressPercent = Math.round((completedSections / SECTION_ORDER.length) * 100);
-
-  const totalWords = Object.values(sections).reduce(
-    (sum, s) => sum + (s.word_count || 0), 0,
-  );
-
-  const handleNext = () => {
-    if (currentStep < SECTION_ORDER.length - 1) setCurrentStep(currentStep + 1);
-  };
-  const handlePrev = () => {
-    if (currentStep > 0) setCurrentStep(currentStep - 1);
-  };
+  const name = SECTION_ORDER[currentStep];
+  const done = SECTION_ORDER.filter((n) => sections[n]?.is_complete).length;
+  const totalWords = Object.values(sections).reduce((s, sec) => s + (sec.word_count || 0), 0);
 
   const handleValidate = () => {
-    const issues: any[] = [];
-    for (const name of SECTION_ORDER) {
-      const sec = sections[name];
-      const s = SECTION_SCHEMAS[name];
-      if (!s) continue;
-      const fv = (sec?.content_json as any)?._fieldValues || {};
-      for (const field of s.fields) {
-        if (field.required && !fv[field.key]?.trim()) {
-          issues.push({
-            severity: 'error',
-            section: name,
-            message: `"${field.label.split(' —')[0]}" is required.`,
-          });
-        }
+    const iss: any[] = [];
+    for (const n of SECTION_ORDER) {
+      const fv = (sections[n]?.content_json as any)?._fieldValues || {};
+      const sc = SECTION_SCHEMAS[n];
+      if (!sc) continue;
+      for (const f of sc.fields) {
+        if (f.required && !fv[f.key]?.trim())
+          iss.push({ severity: 'error', section: SECTION_LABELS[n], message: `「${f.label.split('—')[0].trim()}」还未填写` });
       }
     }
-    setLocalIssues(issues);
-    if (issues.length === 0) {
-      message.success('All required fields are complete. Ready to export!');
-    } else {
-      message.warning(`${issues.length} required field(s) still need attention.`);
-    }
+    setIssues(iss);
+    if (iss.length === 0) message.success('🎉 所有必填项已完成！可以导出了。');
+    else message.warning(`还有 ${iss.length} 个必填项需要填写。`);
   };
 
-  const stepItems = useMemo(
-    () =>
-      SECTION_ORDER.map((name) => ({
-        title: SECTION_LABELS[name],
-        description: sections[name]?.is_complete ? (
-          <Tag color="green" style={{ fontSize: 10 }}>Done</Tag>
-        ) : (
-          <Tag style={{ fontSize: 10 }}>Pending</Tag>
-        ),
-      })),
-    [sections],
-  );
+  const stepItems = useMemo(() => SECTION_ORDER.map((n) => ({
+    title: SECTION_LABELS[n],
+    description: sections[n]?.is_complete ? <Tag color="success" style={{ fontSize: 10 }}>✓ 完成</Tag> : <Tag style={{ fontSize: 10 }}>待填</Tag>,
+  })), [sections]);
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', paddingBottom: 80 }}>
-      {/* Header Bar */}
-      <Card
-        className="glow-cyan"
-        style={{ marginBottom: 20, borderColor: 'var(--accent-cyan)', background: 'var(--bg-card)' }}
-      >
+    <div style={{ maxWidth: 1060, margin: '0 auto', paddingBottom: 80 }}>
+
+      {/* ═══ 顶栏：论文信息 ═══ */}
+      <Card className="glow-gold"
+        style={{ marginBottom: 18, border: '1px solid var(--border-glow)', borderRadius: 'var(--radius-lg)', background: 'var(--bg-card)' }}
+        bodyStyle={{ padding: '20px 28px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-          <div style={{ flex: 1, minWidth: 280 }}>
-            <Title level={3} style={{ margin: 0, color: 'var(--text-primary)', fontFamily: 'inherit', wordBreak: 'break-word' }}>
-              {paper.title || 'Untitled'}
-            </Title>
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <Title level={4} style={{ margin: 0, color: 'var(--text-main)', fontWeight: 700, wordBreak: 'break-word' }}>{paper.title || '未命名论文'}</Title>
             <Space size={8} wrap style={{ marginTop: 10 }}>
-              {isStandalone && <Tag color="orange">LOCAL DEMO</Tag>}
-              <Tag color="cyan">{paper.citation_style?.toUpperCase()}</Tag>
-              <Text style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
-                {totalWords.toLocaleString()} words · {completedSections}/{SECTION_ORDER.length} sections done
-              </Text>
+              {isStandalone && <Tag style={{ background: 'rgba(94,196,176,0.12)', border: '1px solid rgba(94,196,176,0.25)', color: 'var(--teal-light)', fontSize: 10 }}>💻 本地模式</Tag>}
+              <Tag style={{ background: 'rgba(226,176,74,0.1)', color: 'var(--gold-light)', fontSize: 10 }}>{paper.citation_style?.toUpperCase()}</Tag>
+              <Text style={{ color: 'var(--text-dim)', fontSize: 12 }}>{totalWords.toLocaleString()} 词 · {done}/{SECTION_ORDER.length} 节已完成</Text>
             </Space>
           </div>
-          <Progress type="circle" percent={progressPercent} size={60}
-            strokeColor={{ '0%': 'var(--accent-cyan)', '100%': 'var(--accent-purple)' }} />
+          <Progress type="circle" percent={Math.round((done / SECTION_ORDER.length) * 100)} size={56}
+            strokeColor={{ '0%': 'var(--gold)', '100%': 'var(--teal)' }}
+            format={(p) => <span style={{ color: 'var(--text-main)', fontSize: 13, fontWeight: 600 }}>{p}%</span>} />
         </div>
       </Card>
 
-      {/* Steps */}
-      <Card style={{ marginBottom: 20 }}>
-        <Steps current={currentStep} onChange={setCurrentStep} items={stepItems} size="small" style={{ cursor: 'pointer' }} />
+      {/* ═══ 步骤导航 ═══ */}
+      <Card style={{ marginBottom: 18, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}
+        bodyStyle={{ padding: '16px 24px' }}>
+        <Steps current={currentStep} onChange={(s) => setCurrentStep(s)} items={stepItems} size="small" style={{ cursor: 'pointer' }} />
       </Card>
 
-      {/* Section Editor */}
-      <Card
-        style={{ marginBottom: 20 }}
+      {/* ═══ 章节编辑区 ═══ */}
+      <Card style={{ marginBottom: 18, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-card)' }}
         title={
-          <Space size={8} wrap>
-            <span style={{ color: 'var(--accent-cyan)', fontFamily: 'inherit', fontWeight: 600, fontSize: 16 }}>
-              Step {currentStep + 1}: {SECTION_LABELS[currentSectionName]}
-            </span>
-            {sections[currentSectionName]?.is_complete && <Tag color="green" style={{ fontSize: 11 }}>✓ Done</Tag>}
-            <Tooltip title={SECTION_HELP[currentSectionName]}>
-              <BookOutlined style={{ color: 'var(--text-secondary)', cursor: 'help' }} />
+          <Space size={10} wrap>
+            <span style={{ color: 'var(--gold)', fontWeight: 700, fontSize: 17 }}>第 {currentStep + 1} 步：{SECTION_LABELS[name]}</span>
+            {sections[name]?.is_complete && <Tag color="success" style={{ fontSize: 10 }}>✓ 已完成</Tag>}
+            <Tooltip title={SECTION_HELP[name]} placement="bottom">
+              <BookOutlined style={{ color: 'var(--text-dim)', cursor: 'help', fontSize: 14 }} />
             </Tooltip>
-            <Button type="primary" ghost size="small" onClick={() => togglePhraseBrowser(currentSectionName)}
-              style={{ fontFamily: 'inherit' }}>📚 Phrasebank</Button>
+            <Button type="primary" ghost size="small" onClick={() => togglePhraseBrowser(name)}
+              style={{ borderColor: 'var(--gold)', color: 'var(--gold-light)' }}>📚 打开句型库</Button>
           </Space>
         }
         extra={
-          <Space>
-            <Button onClick={handlePrev} disabled={currentStep === 0} icon={<LeftOutlined />}
-              style={{ fontFamily: 'inherit' }}>Previous</Button>
-            <Button onClick={() => toggleSectionComplete(currentSectionName)}
-              icon={sections[currentSectionName]?.is_complete ? <CheckCircleOutlined /> : undefined}
-              style={{ fontFamily: 'inherit' }}>
-              {sections[currentSectionName]?.is_complete ? '✓ Done' : 'Mark Done'}
+          <Space size={8}>
+            <Button onClick={() => setCurrentStep(Math.max(0, currentStep - 1))} disabled={currentStep === 0}
+              icon={<LeftOutlined />}>上一步</Button>
+            <Button onClick={() => toggleSectionComplete(name)}
+              icon={sections[name]?.is_complete ? <CheckCircleOutlined /> : undefined}>
+              {sections[name]?.is_complete ? '✓ 已标记完成' : '标记完成'}
             </Button>
-            <Button type="primary" onClick={handleNext} disabled={currentStep === SECTION_ORDER.length - 1}
-              icon={<RightOutlined />} style={{ fontFamily: 'inherit' }}>Next</Button>
+            <Button type="primary" onClick={() => setCurrentStep(Math.min(SECTION_ORDER.length - 1, currentStep + 1))}
+              disabled={currentStep === SECTION_ORDER.length - 1} icon={<RightOutlined />}>下一步</Button>
           </Space>
-        }
-      >
-        <StructuredSectionEditor sectionName={currentSectionName} />
+        }>
+        <StructuredSectionEditor sectionName={name} />
       </Card>
 
-      {/* Validation Issues */}
-      {localIssues.length > 0 && (
-        <Card style={{ marginBottom: 20 }} size="small"
-          title={<Space><ExclamationCircleOutlined style={{ color: 'var(--error)' }} />
-            <span style={{ fontFamily: 'inherit' }}>Issues ({localIssues.length})</span></Space>}>
-          {localIssues.map((issue: any, i: number) => (
-            <Alert key={i} type={issue.severity === 'error' ? 'error' : 'warning'} showIcon
-              message={<span style={{ fontFamily: 'inherit' }}>[{issue.section}] {issue.message}</span>}
-              style={{ marginBottom: 6, background: 'var(--bg-elevated)', fontFamily: 'inherit' }} />
+      {/* ═══ 校验结果 ═══ */}
+      {issues.length > 0 && (
+        <Card style={{ marginBottom: 18, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}
+          size="small" title={<Space><ExclamationCircleOutlined style={{ color: 'var(--danger)' }} /><span>待处理问题（{issues.length}）</span></Space>}>
+          {issues.map((iss, i) => (
+            <Alert key={i} type={iss.severity === 'error' ? 'error' : 'warning'} showIcon
+              message={`[${iss.section}] ${iss.message}`}
+              style={{ marginBottom: 6, background: 'var(--bg-surface)', borderRadius: 'var(--radius-sm)' }} />
           ))}
         </Card>
       )}
 
-      {/* Bottom Buttons */}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 24, flexWrap: 'wrap' }}>
-        <Button onClick={handleValidate} icon={<CheckCircleOutlined />} size="large" style={{ fontFamily: 'inherit' }}>
-          Validate All Fields
-        </Button>
+      {/* ═══ 底部操作 ═══ */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 28 }}>
+        <Button onClick={handleValidate} icon={<CheckCircleOutlined />} size="large">校验必填项</Button>
         <Button type="primary" size="large" icon={<DownloadOutlined />} onClick={() => setShowExport(true)}
-          className="glow-cyan" style={{ fontFamily: 'inherit' }}>Export Paper</Button>
+          style={{ fontWeight: 600 }}>导出论文</Button>
       </div>
 
-      <PhraseBrowser open={phraseBrowserOpen} onClose={closePhraseBrowser} sectionName={currentSectionName} />
+      <PhraseBrowser open={phraseBrowserOpen} onClose={closePhraseBrowser} sectionName={name} />
       <ExportPreview open={showExport} onClose={() => setShowExport(false)} paperId={paper.id} />
     </div>
   );
