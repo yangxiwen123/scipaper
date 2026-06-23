@@ -51,10 +51,19 @@ export interface TextRun {
   text?: string;
   bold?: boolean;
   italic?: boolean;
+  subscript?: boolean;
+  superscript?: boolean;
   ref_ids?: string[];
   figure_id?: string;
+  figure_label?: string;
+  table_id?: string;
+  table_label?: string;
+  equation_id?: string;
+  equation_label?: string;
   phrase_id?: string;
+  template_text?: string;
   slot_values?: Record<string, string>;
+  filled_text?: string;
 }
 
 export async function createPaper(title: string, journal?: string): Promise<Paper> {
