@@ -6,7 +6,7 @@
 
 ## 一句话介绍
 
-一款完全基于传统软件工程架构的 SCI 论文写作辅助系统。将复杂的 IMRaD 结构拆解为 26 个标签化的"填空题"，内置 89 条学术句型模板，填写完成后一键编译为 LaTeX / PDF / Word。**零 AI 依赖，100% 确定性逻辑。**
+一款完全基于传统软件工程架构的 SCI 论文写作辅助系统。将复杂的 IMRaD 结构拆解为 25 个标签化的"填空题"，内置 89 条学术句型模板，填写完成后一键编译为 LaTeX / PDF / Word。**零 AI 依赖，100% 确定性逻辑。**
 
 ---
 
@@ -25,7 +25,7 @@
 
 | 痛点 | 方案 |
 |------|------|
-| 普通人不知道论文每部分该写什么 | 6 个章节拆成 26 个带提示、示例、字数指导的填空题 |
+| 普通人不知道论文每部分该写什么 | 6 个章节拆成 25 个带提示、示例、字数指导的填空题 |
 | 不会写学术英语 | 89 条手工编排的句型模板，按写作意图三级分类，点选填充即可 |
 | 搞不定 LaTeX 和期刊排版 | JSON → Document AST → LaTeX/Word 自动编译，预置 4 种期刊模板 |
 
@@ -93,7 +93,7 @@ docker-compose exec backend python -m seed_data.run_seed  # 初始化句型库
 | `StructuredSectionEditor.tsx` | 结构化填空题：提示、示例、字数计数、金色悬停发光 |
 | `PhraseBrowser.tsx` | 句型浏览器：三级分类树 + 搜索 + 一键插入 |
 | `ExportPreview.tsx` | 导出面板：PDF/LaTeX/Word + 期刊模板选择 |
-| `sectionSchemas.ts` | **26 个标签化字段**：Abstract(5) + Introduction(4) + Methods(5) + Results(3) + Discussion(5) + Conclusion(3) |
+| `sectionSchemas.ts` | **25 个标签化字段**：Abstract(5) + Introduction(4) + Methods(5) + Results(3) + Discussion(5) + Conclusion(3) |
 | `paperStore.ts` | Zustand 状态管理：localStorage 持久化 + API 同步双模式 |
 
 ### 后端（7 个引擎 + 4 个 API 路由）
@@ -120,9 +120,9 @@ docker-compose exec backend python -m seed_data.run_seed  # 初始化句型库
 
 | 维度 | SCI Writer | Overleaf | Word 模板 | AI 写作工具 |
 |------|-----------|----------|----------|-----------|
-| 写作引导 | ✅ 26 个结构化字段 | ❌ 空白编辑器 | ❌ 空白文档 | ⚠️ 依赖 prompt |
+| 写作引导 | ✅ 25 个结构化字段 | ❌ 空白编辑器 | ❌ 空白文档 | ⚠️ 依赖 prompt |
 | 学术句型库 | ✅ 89 条手工模板 | ❌ 无 | ❌ 无 | ⚠️ 不可控生成 |
-| 结构化校验 | ✅ 12 条声明式规则 | ❌ 仅拼写 | ❌ 仅拼写 | ❌ 无 |
+| 结构化校验 | ✅ 14 条声明式规则 | ❌ 仅拼写 | ❌ 仅拼写 | ❌ 无 |
 | AI 依赖 | ✅ **零 AI** | ✅ 零 AI | ✅ 零 AI | ❌ 100% LLM |
 | 运行方式 | 浏览器直接打开 | SaaS 在线 | 本地安装 | SaaS 在线 |
 
@@ -152,16 +152,16 @@ scipaper/
 │   │   ├── StepForm/            # 结构化填空题编辑器
 │   │   ├── PhraseBrowser/       # 学术句型浏览器
 │   │   └── ExportPreview/       # 导出/下载面板
-│   ├── data/                    # 26 个字段的章节 Schema 定义
+│   ├── data/                    # 25 个字段的章节 Schema 定义
 │   ├── stores/                  # Zustand 状态管理
 │   └── api/                     # Axios API 客户端
 ├── backend/app/
 │   ├── engines/                 # 7 个核心引擎
 │   ├── parsers/                 # 手写 BibTeX/RIS 解析器
 │   ├── services/                # 句型/导出/校验服务
-│   ├── models/                  # SQLAlchemy ORM（8 张表）
+│   ├── models/                  # SQLAlchemy ORM（11 张表）
 │   ├── schemas/                 # Pydantic Schema
-│   └── api/                     # FastAPI 路由（18 个端点）
+│   └── api/                     # FastAPI 路由（24 个端点）
 ├── backend/seed_data/           # 句型库 + 期刊模板种子数据
 ├── templates/                   # LaTeX Jinja2 模板
 ├── docker-compose.yml           # 5 服务编排
