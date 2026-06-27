@@ -2,11 +2,22 @@
 
 > 🏆 **Trae 创造力大赛参赛作品**
 >
-> 像做填空题一样写 SCI 论文。不需要学术背景、不需要懂 LaTeX、不需要 AI 生成文字。
+> **[📄 点击查看完整技术方案书](competition.html)** — 评审可直接在浏览器中打开
 
 ## 一句话介绍
 
 一款完全基于传统软件工程架构的 SCI 论文写作辅助系统。将复杂的 IMRaD 结构拆解为 26 个标签化的"填空题"，内置 89 条学术句型模板，填写完成后一键编译为 LaTeX / PDF / Word。**零 AI 依赖，100% 确定性逻辑。**
+
+---
+
+## 竞赛评审快速入口
+
+| 项目 | 说明 |
+|------|------|
+| 📄 **技术方案书** | [competition.html](competition.html) — 浏览器直接打开，含完整架构、功能清单、竞品对比 |
+| 🚀 **在线体验** | `cd frontend && npm run dev` → http://localhost:3000（纯前端，无需后端） |
+| 📦 **源码** | 前端 10 个源文件 + 后端 7 个引擎 + 4 个 API 路由 + 种子数据 |
+| 💻 **全栈运行** | `docker-compose up -d`（5 服务一键编排，含 LaTeX/PDF 编译） |
 
 ---
 
@@ -154,7 +165,7 @@ scipaper/
 ├── backend/seed_data/           # 句型库 + 期刊模板种子数据
 ├── templates/                   # LaTeX Jinja2 模板
 ├── docker-compose.yml           # 5 服务编排
-├── competition.html             # 参赛技术方案书
+├── competition.html             # 参赛技术方案书（浏览器直接打开）
 └── CLAUDE.md                    # 项目架构文档
 ```
 
